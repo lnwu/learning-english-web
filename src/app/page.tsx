@@ -1,14 +1,35 @@
-import Link from "next/link";
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+import { useLocalStorage } from "react-use";
 
 const Home = () => {
+  const [word, setWord] = useState("");
+  const [value, setValue] = useLocalStorage<string[]>("words", []);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const handleAddWord = () => {
+    setValue([...(value || []), word]);
+    setWord("");
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center">
-      <ul className="w-[500px]">
-        <h1>Router</h1>
-        <li>
-          <Link href={"/page1"}>Page 1</Link>
-        </li>
-      </ul>
+    <main className="flex min-h-screen flex-col items-center justify-center">
+      <form className="flex space-x-2" onSubmit={(e) => e.preventDefault()}>
+        <Input
+          placeholder="Word"
+          value={word}
+          onChange={(e) => setWord(e.target.value.toLowerCase())}
+        />
+        <Button onClick={handleAddWord}>Add</Button>
+      </form>
+      <div>{isClient && JSON.stringify(value)}</div>
     </main>
   );
 };
