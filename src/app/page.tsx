@@ -16,6 +16,7 @@ const Home = () => {
   }, []);
 
   const handleAddWord = () => {
+    if (!word || !translation) return;
     setValue(value ? [...value, [word, translation]] : [[word, translation]]);
     setWord("");
   };
