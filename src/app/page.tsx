@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const Home = () => {
   return (
-    <main className="flex min-h-screen flex-col items-center pt-24">
+    <main className="flex min-h-screen flex-col items-center">
       <ul className="w-[500px]">
         <h1>Router</h1>
         <li>
