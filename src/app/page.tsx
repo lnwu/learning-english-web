@@ -49,7 +49,7 @@ const Home = observer(() => {
               <li key={word} className="flex items-center space-x-2">
                 <strong className="w-xs text-right">{translation}:</strong>
                 <Input type="text" id={word} onChange={(e) => inputWords.set(word, e.target.value.toLowerCase())} value={inputValue} />
-                <span>{inputValue === word ? "✅" : "❌"}</span>
+                <span title={word}>{inputValue === word ? "✅" : "❌"}</span>
               </li>
             );
           })}
