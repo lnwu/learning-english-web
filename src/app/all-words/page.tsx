@@ -1,10 +1,10 @@
 "use client";
 
+import { useWords } from "@/hooks";
 import { useEffect, useState } from "react";
-import { useLocalStorage } from "react-use";
 
 const Home = () => {
-  const [words] = useLocalStorage<[string, string][]>("words");
+  const { words } = useWords();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -14,8 +14,8 @@ const Home = () => {
   return (
     <main>
       <ul>
-        {isClient && words && words.length > 0 ? (
-          words.map(([word, translation], index) => (
+        {isClient && words.allWords.length > 0 ? (
+          words.allWords.map(([word, translation], index) => (
             <li key={index}>
               <strong>{word}</strong>: {translation}
             </li>

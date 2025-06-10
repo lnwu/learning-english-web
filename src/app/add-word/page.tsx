@@ -2,13 +2,13 @@
 
 import { Input, Button } from "@/components/ui";
 import { useRef, useState } from "react";
-import { useLocalStorage } from "react-use";
 import Link from "next/link";
+import { useWords } from "@/hooks";
 
 const Home = () => {
+  const { words, addWord, removeAllWords } = useWords();
   const [word, setWord] = useState("");
   const [translation, setTranslation] = useState("");
-  const [words, setWords, remove] = useLocalStorage<[string, string][]>("words");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const clear = () => {
@@ -20,15 +20,14 @@ const Home = () => {
   const handleAddWord = () => {
     if (!word || !translation) return;
 
-    const existingWord = words?.find(([w]) => w === word);
+    const existingWord = words.randomWords.has(word);
     if (existingWord) {
       alert(`The word "${word}" already exists in the list.`);
       clear();
       return;
     }
 
-    setWords(words ? [...words, [word, translation]] : [[word, translation]]);
-
+    addWord(word, translation);
     clear();
   };
 
@@ -38,7 +37,7 @@ const Home = () => {
         <Input placeholder="Word" value={word} onChange={(e) => setWord(e.target.value.toLowerCase())} ref={inputRef} />
         <Input placeholder="Translation" value={translation} onChange={(e) => setTranslation(e.target.value.toLowerCase())} />
         <Button onClick={handleAddWord}>Add</Button>
-        <Button type="button" onClick={remove}>
+        <Button type="button" onClick={removeAllWords}>
           Remove All
         </Button>
       </form>
