@@ -6,23 +6,52 @@ import Link from "next/link";
 import { useWords } from "@/hooks";
 
 const Home = () => {
-  const { words, addWord, removeAllWords } = useWords();
+  const { words, addWord } = useWords();
   const [word, setWord] = useState("");
-  const [translation, setTranslation] = useState("");
+  const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const clear = () => {
     setWord("");
-    setTranslation("");
     inputRef.current?.focus();
   };
 
-  const handleAddWord = () => {
-    if (!word || !translation) return;
+  const validateWord = async (word: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+      if (!response.ok) {
+        throw new Error("Word not found");
+      }
+      const data = await response.json();
+      return data.length > 0 ? data[0].meanings[0].definitions[0].definition : null;
+    } catch {
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const existingWord = words.randomWords.has(word);
+  const handleAddWord = async () => {
+    if (!word) return;
+
+    const existingWord = words.wordTranslations.has(word);
     if (existingWord) {
       alert(`The word "${word}" already exists in the list.`);
+      clear();
+      return;
+    }
+
+    const isValidWord = /^[a-zA-Z]+$/.test(word);
+    if (!isValidWord) {
+      alert(`The word "${word}" contains invalid characters or is a typo.`);
+      clear();
+      return;
+    }
+
+    const translation = await validateWord(word);
+    if (!translation) {
+      alert(`The word "${word}" is not recognized as a real word.`);
       clear();
       return;
     }
@@ -35,20 +64,16 @@ const Home = () => {
     <main className="space-y-4">
       <form className="flex space-x-2" onSubmit={(e) => e.preventDefault()}>
         <Input placeholder="Word" value={word} onChange={(e) => setWord(e.target.value.toLowerCase())} ref={inputRef} />
-        <Input placeholder="Translation" value={translation} onChange={(e) => setTranslation(e.target.value.toLowerCase())} />
-        <Button onClick={handleAddWord}>Add</Button>
-        <Button type="button" onClick={removeAllWords}>
-          Remove All
+        <Button onClick={handleAddWord} disabled={loading}>
+          Add
         </Button>
-      </form>
-      <div className="flex space-x-2">
         <Link href="/">
           <Button type="button">Home</Button>
         </Link>
         <Link href="/all-words">
           <Button type="button">View All Words</Button>
         </Link>
-      </div>
+      </form>
     </main>
   );
 };

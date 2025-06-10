@@ -2,35 +2,50 @@ import { useLocalStorage } from "react-use";
 import { makeAutoObservable } from "mobx";
 
 class Words {
-  randomWords: Map<string, string> = new Map();
-  pendingWords: Map<string, string> = new Map();
+  static MAX_RANDOM_WORDS = 5;
+
+  wordTranslations: Map<string, string> = new Map();
+  userInputs: Map<string, string> = new Map();
 
   constructor() {
     makeAutoObservable(this);
   }
 
   setWords(words: [string, string][]) {
-    this.randomWords = new Map(words);
+    this.wordTranslations = new Map(words);
   }
 
   addWord(word: string, translation: string) {
-    this.randomWords.set(word, translation);
+    this.wordTranslations.set(word, translation);
+  }
+
+  deleteWord(word: string) {
+    this.wordTranslations.delete(word);
   }
 
   removeAllWords() {
-    this.randomWords.clear();
+    this.wordTranslations.clear();
   }
 
-  setPendingWord(word: string, value: string) {
-    this.pendingWords.set(word, value);
+  setUserInput(word: string, value: string) {
+    this.userInputs.set(word, value);
   }
 
   get correct() {
-    return Array.from(this.pendingWords.entries()).every(([word, value]) => word === value);
+    return Array.from(this.userInputs.entries()).every(([word, value]) => word === value);
   }
 
-  get allWords() {
-    return Array.from(this.randomWords.entries());
+  get allWords(): Map<string, string> {
+    return this.wordTranslations;
+  }
+
+  getRandomWords(max: number = Words.MAX_RANDOM_WORDS): [string, string][] {
+    const storedWords = Array.from(this.allWords.entries());
+    if (storedWords.length > 0) {
+      const shuffled = [...storedWords].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, max);
+    }
+    return [];
   }
 }
 
@@ -39,13 +54,18 @@ const words = new Words();
 export const useWords = () => {
   const [storedWords, setStoredWords] = useLocalStorage<[string, string][]>("words", []);
 
-  if (storedWords && words.randomWords.size === 0) {
+  if (storedWords && words.wordTranslations.size === 0) {
     words.setWords(storedWords);
   }
 
   const addWord = (word: string, translation: string) => {
     words.addWord(word, translation);
-    setStoredWords(words.allWords);
+    setStoredWords(Array.from(words.wordTranslations.entries()));
+  };
+
+  const deleteWord = (word: string) => {
+    words.deleteWord(word);
+    setStoredWords(Array.from(words.wordTranslations.entries()));
   };
 
   const removeAllWords = () => {
@@ -53,5 +73,5 @@ export const useWords = () => {
     setStoredWords([]);
   };
 
-  return { words, addWord, removeAllWords };
+  return { words, addWord, deleteWord, removeAllWords };
 };
