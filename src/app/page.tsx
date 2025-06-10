@@ -1,10 +1,9 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import { Input, Button } from "@/components/ui";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "react-use";
 import { observer } from "mobx-react-lite";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { makeAutoObservable } from "mobx";
 

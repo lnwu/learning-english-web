@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, Button } from "@/components/ui";
 import { useRef, useState } from "react";
 import { useLocalStorage } from "react-use";
 import Link from "next/link";
@@ -12,13 +11,25 @@ const Home = () => {
   const [words, setWords, remove] = useLocalStorage<[string, string][]>("words");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleAddWord = () => {
-    if (!word || !translation) return;
-    setWords(words ? [...words, [word, translation]] : [[word, translation]]);
-
+  const clear = () => {
     setWord("");
     setTranslation("");
     inputRef.current?.focus();
+  };
+
+  const handleAddWord = () => {
+    if (!word || !translation) return;
+
+    const existingWord = words?.find(([w]) => w === word);
+    if (existingWord) {
+      alert(`The word "${word}" already exists in the list.`);
+      clear();
+      return;
+    }
+
+    setWords(words ? [...words, [word, translation]] : [[word, translation]]);
+
+    clear();
   };
 
   return (
