@@ -19,14 +19,15 @@ const Home = observer(() => {
   }, [words]);
 
   const refreshWords = () => {
+    words.userInputs.clear();
     words.setWords(words.getRandomWords());
   };
 
   return (
-    <main className="flex flex-col space-y-2">
-      <ul className="space-y-2">
-        {isClient &&
-          Array.from(words.wordTranslations.entries()).map(([word, translation]) => {
+    isClient && (
+      <main className="flex flex-col space-y-2">
+        <ul className="space-y-2">
+          {Array.from(words.wordTranslations.entries()).map(([word, translation]) => {
             const inputValue = words.userInputs.get(word) || "";
 
             return (
@@ -37,16 +38,17 @@ const Home = observer(() => {
               </li>
             );
           })}
-      </ul>
-      <div className="flex space-x-2 justify-end">
-        <Button onClick={refreshWords} disabled={!words.correct}>
-          Refresh
-        </Button>
-        <Link href="/add-word">
-          <Button type="button">Add New Word</Button>
-        </Link>
-      </div>
-    </main>
+        </ul>
+        <div className="flex space-x-2 justify-end">
+          <Button onClick={refreshWords} disabled={!words.correct}>
+            Refresh
+          </Button>
+          <Link href="/add-word">
+            <Button type="button">Add New Word</Button>
+          </Link>
+        </div>
+      </main>
+    )
   );
 });
 

@@ -32,7 +32,8 @@ class Words {
   }
 
   get correct() {
-    return Array.from(this.userInputs.entries()).every(([word, value]) => word === value);
+    const randomWords = this.getRandomWords();
+    return this.userInputs.size === randomWords.length && Array.from(this.userInputs.entries()).every(([word, value]) => word === value);
   }
 
   get allWords(): Map<string, string> {
