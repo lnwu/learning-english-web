@@ -1,5 +1,6 @@
 import { useLocalStorage } from "react-use";
 import { makeAutoObservable } from "mobx";
+import { useEffect } from "react";
 
 class Words {
   static MAX_RANDOM_WORDS = 5;
@@ -55,9 +56,11 @@ const words = new Words();
 export const useWords = () => {
   const [storedWords, setStoredWords] = useLocalStorage<[string, string][]>("words", []);
 
-  if (storedWords && words.wordTranslations.size === 0) {
-    words.setWords(storedWords);
-  }
+  useEffect(() => {
+    if (storedWords && words.wordTranslations.size === 0) {
+      words.setWords(storedWords);
+    }
+  }, [storedWords]);
 
   const addWord = (word: string, translation: string) => {
     words.addWord(word, translation);
