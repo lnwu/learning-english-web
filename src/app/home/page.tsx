@@ -23,16 +23,34 @@ const Home = observer(() => {
     words.setWords(words.getRandomWords());
   };
 
+  const pronounceWord = (word: string) => {
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "en-US";
+      utterance.rate = 0.8;
+      speechSynthesis.speak(utterance);
+    }
+  };
+
   return (
     isClient && (
       <main className="flex flex-col space-y-2">
         <ul className="space-y-2">
           {Array.from(words.wordTranslations.entries()).map(([word, translation]) => {
             const inputValue = words.userInputs.get(word) || "";
+            const [englishDefinition, chineseTranslation] = translation.includes("\n") ? translation.split("\n") : [translation, ""];
 
             return (
               <li key={word} className="flex items-center space-x-2">
-                <strong className="grow max-w-xs text-right">{translation}</strong>
+                <div className="grow max-w-xs text-right relative group">
+                  <div className="flex items-center justify-end space-x-2">
+                    <strong className="cursor-help">{englishDefinition}</strong>
+                    <button onClick={() => pronounceWord(word)} className="text-blue-500 hover:text-blue-700 cursor-pointer text-sm" title={`Pronounce: ${word}`}>
+                      🔊
+                    </button>
+                  </div>
+                  {chineseTranslation && <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">{chineseTranslation}</div>}
+                </div>
                 <Input className="w-xs" type="text" id={word} onChange={(e) => words.setUserInput(word, e.target.value.toLowerCase())} value={inputValue} />
                 <span title={word}>{inputValue === word ? "✅" : "❌"}</span>
               </li>

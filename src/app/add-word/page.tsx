@@ -37,21 +37,21 @@ const Home = () => {
     good: "好",
     bad: "坏",
     big: "大",
-    small: "小"
+    small: "小",
   };
 
   const translateToChinese = async (word: string): Promise<string | null> => {
     try {
       // Try Google Translate API first
       const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(word)}`);
-      
+
       if (!response.ok) {
         throw new Error("Translation failed");
       }
-      
+
       const data = await response.json();
       const translation = data[0][0][0];
-      
+
       if (translation && translation !== word) {
         return translation;
       }
@@ -120,10 +120,10 @@ const Home = () => {
 
     const chineseTranslation = await translateToChinese(word);
     const englishDefinition = await getEnglishDefinition(word);
-    
+
     let combinedTranslation = "";
     if (chineseTranslation && englishDefinition) {
-      combinedTranslation = `${englishDefinition} - ${chineseTranslation}`;
+      combinedTranslation = `${englishDefinition}\n${chineseTranslation}`;
     } else if (chineseTranslation) {
       combinedTranslation = chineseTranslation;
     } else if (englishDefinition) {
