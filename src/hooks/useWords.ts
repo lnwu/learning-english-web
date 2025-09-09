@@ -38,7 +38,16 @@ class Words {
   }
 
   get allWords(): Map<string, string> {
-    return this.wordTranslations;
+    const storedWords = localStorage.getItem("words");
+    if (storedWords) {
+      try {
+        const parsedWords = JSON.parse(storedWords);
+        return new Map(parsedWords);
+      } catch {
+        return new Map();
+      }
+    }
+    return new Map();
   }
 
   getRandomWords(max: number = Words.MAX_RANDOM_WORDS): [string, string][] {
