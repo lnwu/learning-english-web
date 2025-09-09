@@ -1,7 +1,7 @@
 "use client";
 
 import { Input, Button } from "@/components/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useWords } from "@/hooks";
@@ -9,6 +9,7 @@ import { useWords } from "@/hooks";
 const Home = observer(() => {
   const { words } = useWords();
   const [isClient, setIsClient] = useState(false);
+  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   useEffect(() => {
     setIsClient(true);
@@ -21,6 +22,14 @@ const Home = observer(() => {
   const refreshWords = () => {
     words.userInputs.clear();
     words.setWords(words.getRandomWords());
+    
+    const firstWord = Array.from(words.wordTranslations.keys())[0];
+    if (firstWord) {
+      const firstInput = inputRefs.current.get(firstWord);
+      if (firstInput) {
+        firstInput.focus();
+      }
+    }
   };
 
   const pronounceWord = (word: string) => {
@@ -51,7 +60,18 @@ const Home = observer(() => {
                   </div>
                   {chineseTranslation && <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">{chineseTranslation}</div>}
                 </div>
-                <Input className="w-xs" type="text" id={word} onChange={(e) => words.setUserInput(word, e.target.value.toLowerCase())} value={inputValue} />
+                <Input 
+                  className="w-xs" 
+                  type="text" 
+                  id={word} 
+                  ref={(el) => {
+                    if (el) {
+                      inputRefs.current.set(word, el);
+                    }
+                  }}
+                  onChange={(e) => words.setUserInput(word, e.target.value.toLowerCase())} 
+                  value={inputValue} 
+                />
                 <span title={word}>{inputValue === word ? "✅" : "❌"}</span>
               </li>
             );
