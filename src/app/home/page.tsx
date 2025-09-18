@@ -80,14 +80,16 @@ const Home = observer(() => {
                   value={inputValue} 
                 />
                 <span 
-                  tabIndex={0} 
+                  tabIndex={inputValue === word ? -1 : 0} 
                   title={word}
-                  className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:rounded px-1 relative group"
+                  className={`${inputValue === word ? '' : 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:rounded'} px-1 relative group`}
                 >
                   {inputValue === word ? "✅" : "❌"}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-focus:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                    {word}
-                  </div>
+                  {inputValue !== word && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-focus:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                      {word}
+                    </div>
+                  )}
                 </span>
               </li>
             );
