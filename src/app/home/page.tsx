@@ -9,6 +9,7 @@ import { useWords } from "@/hooks";
 const Home = observer(() => {
   const { words } = useWords();
   const [isClient, setIsClient] = useState(false);
+  const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   useEffect(() => {
@@ -19,17 +20,23 @@ const Home = observer(() => {
     words.setWords(words.getRandomWords());
   }, [words]);
 
+  useEffect(() => {
+    if (shouldFocusFirst && words.wordTranslations.size > 0) {
+      const firstWord = Array.from(words.wordTranslations.keys())[0];
+      if (firstWord) {
+        const firstInput = inputRefs.current.get(firstWord);
+        if (firstInput) {
+          firstInput.focus();
+          setShouldFocusFirst(false);
+        }
+      }
+    }
+  }, [shouldFocusFirst, words.wordTranslations]);
+
   const refreshWords = () => {
     words.userInputs.clear();
     words.setWords(words.getRandomWords());
-    
-    const firstWord = Array.from(words.wordTranslations.keys())[0];
-    if (firstWord) {
-      const firstInput = inputRefs.current.get(firstWord);
-      if (firstInput) {
-        firstInput.focus();
-      }
-    }
+    setShouldFocusFirst(true);
   };
 
   const pronounceWord = (word: string) => {
