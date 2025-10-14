@@ -1,7 +1,7 @@
 "use client";
 
 import { Input, Button } from "@/components/ui";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useWords } from "@/hooks";
@@ -39,6 +39,14 @@ const Home = observer(() => {
     setShouldFocusFirst(true);
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!words.correct) {
+      return;
+    }
+    refreshWords();
+  };
+
   const pronounceWord = (word: string) => {
     if ("speechSynthesis" in window) {
       const utterance = new SpeechSynthesisUtterance(word);
@@ -50,22 +58,36 @@ const Home = observer(() => {
 
   return (
     isClient && (
-      <main className="flex flex-col space-y-2">
+      <main>
+        <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
         <ul className="space-y-2">
           {Array.from(words.wordTranslations.entries()).map(([word, translation]) => {
             const inputValue = words.userInputs.get(word) || "";
-            const [englishDefinition, chineseTranslation] = translation.includes("\n") ? translation.split("\n") : [translation, ""];
+            const segments = translation.split("\n").filter(Boolean);
+            let englishDefinition = "";
+            let chineseTranslation = "";
+
+            if (segments.length > 1) {
+              [englishDefinition, chineseTranslation] = segments;
+            } else if (segments.length === 1) {
+              englishDefinition = segments[0];
+            }
+
+            const displayLines = chineseTranslation ? [chineseTranslation] : [];
+            if (englishDefinition) {
+              displayLines.push(englishDefinition);
+            }
+            const displayTranslation = displayLines.join("\n");
 
             return (
               <li key={word} className="flex items-center space-x-2">
-                <div className="grow max-w-xs text-right relative group">
+                <div className="grow max-w-xs text-right relative">
                   <div className="flex items-center justify-end space-x-2">
-                    <strong className="cursor-help">{englishDefinition}</strong>
-                    <button onClick={() => pronounceWord(word)} className="text-blue-500 hover:text-blue-700 cursor-pointer text-sm" title={`Pronounce: ${word}`}>
+                    <strong className="whitespace-pre-line">{displayTranslation}</strong>
+                    <button type="button" onClick={() => pronounceWord(word)} className="text-blue-500 hover:text-blue-700 cursor-pointer text-sm" title={`Pronounce: ${word}`}>
                       🔊
                     </button>
                   </div>
-                  {chineseTranslation && <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">{chineseTranslation}</div>}
                 </div>
                 <Input 
                   className="w-xs" 
@@ -95,14 +117,15 @@ const Home = observer(() => {
             );
           })}
         </ul>
-        <div className="flex space-x-2 justify-end">
-          <Button onClick={refreshWords} disabled={!words.correct}>
-            Refresh
-          </Button>
-          <Link href="/add-word">
-            <Button type="button">Add New Word</Button>
-          </Link>
-        </div>
+          <div className="flex space-x-2 justify-end">
+            <Button type="submit" disabled={!words.correct}>
+              Refresh
+            </Button>
+            <Link href="/add-word">
+              <Button type="button">Add New Word</Button>
+            </Link>
+          </div>
+        </form>
       </main>
     )
   );
