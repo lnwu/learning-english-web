@@ -1,5 +1,253 @@
-# Nextjs-template
+# Learning English
 
-# Tech stacks
+A modern web application designed to help users learn English vocabulary through interactive word practice and automatic translations.
 
-- [bun](https://bun.sh/)
+## Features
+
+- **Add New Words**: Automatically fetch English definitions and Chinese translations
+- **Word Validation**: Validates words using dictionary API to ensure they're real English words
+- **Interactive Practice**: Quiz-style interface to practice your vocabulary
+- **Audio Pronunciation**: Listen to word pronunciations with text-to-speech
+- **Persistent Storage**: All words are saved locally in your browser
+- **Word Management**: View, add, and delete words from your collection
+- **Smart Translations**: Combines English definitions with Chinese translations
+
+## Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org/) with React 19
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **State Management**: [MobX](https://mobx.js.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**: [Radix UI](https://www.radix-ui.com/)
+- **Package Manager**: npm
+- **Runtime**: Node.js
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (version 18.17 or higher)
+- npm (comes with Node.js)
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/lnwu/learning-english.git
+cd learning-english
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+## Usage
+
+### Development Mode
+
+Start the development server with hot-reloading:
+
+```bash
+npm run dev
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000)
+
+### Production Build
+
+Build the application for production:
+
+```bash
+npm run build
+```
+
+Start the production server:
+
+```bash
+npm start
+```
+
+### Linting
+
+Check code quality:
+
+```bash
+npm run lint
+```
+
+Fix linting issues automatically:
+
+```bash
+npm run lint:fix
+```
+
+## Application Structure
+
+```
+learning-english/
+├── src/
+│   ├── app/              # Next.js app directory
+│   │   ├── home/         # Main practice page
+│   │   ├── add-word/     # Add new words page
+│   │   ├── all-words/    # View all words page
+│   │   └── layout.tsx    # Root layout
+│   ├── components/       # React components
+│   │   └── ui/          # UI components (Button, Input, Alert)
+│   ├── hooks/           # Custom React hooks
+│   │   └── useWords.ts  # Word management hook
+│   └── lib/             # Utility functions
+├── public/              # Static assets
+└── package.json         # Project dependencies
+```
+
+## How It Works
+
+### Adding Words
+
+1. Navigate to the "Add New Word" page
+2. Enter an English word
+3. The app automatically:
+   - Validates the word is a real English word
+   - Fetches the English definition from [Dictionary API](https://dictionaryapi.dev/)
+   - Translates the word to Chinese using Google Translate API
+   - Saves both definition and translation
+
+**Example:**
+```
+Input: "hello"
+Result: 
+  Definition: "Used as a greeting or to begin a phone conversation"
+  Translation: "你好"
+```
+
+### Practicing Words
+
+1. The home page displays random words from your collection
+2. See the translation/definition and type the English word
+3. Get instant feedback (✅ or ❌)
+4. Click the 🔊 icon to hear pronunciation
+5. Submit when all answers are correct to get new words
+
+### Managing Words
+
+- **View All Words**: See your complete vocabulary list
+- **Delete Words**: Remove words you no longer want to practice
+- **Persistent Storage**: Words are saved in browser localStorage
+
+## API Integration
+
+The application uses two external APIs:
+
+1. **Dictionary API** (`https://api.dictionaryapi.dev/api/v2/entries/en/{word}`)
+   - Purpose: Validate words and fetch English definitions
+   - Free tier: No API key required
+
+2. **Google Translate API** (`https://translate.googleapis.com/translate_a/single`)
+   - Purpose: Translate English words to Chinese
+   - Fallback: Built-in dictionary for common words
+
+## Code Examples
+
+### Using the useWords Hook
+
+```typescript
+import { useWords } from "@/hooks";
+
+function MyComponent() {
+  const { words, addWord, deleteWord, removeAllWords } = useWords();
+  
+  // Add a new word
+  addWord("example", "an example definition\n例子");
+  
+  // Delete a word
+  deleteWord("example");
+  
+  // Access all words
+  const allWords = words.allWords;
+  
+  return <div>Total words: {allWords.size}</div>;
+}
+```
+
+### Word Validation Example
+
+```typescript
+const validateWord = async (word: string): Promise<boolean> => {
+  try {
+    const response = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
+    );
+    if (!response.ok) {
+      throw new Error("Word not found");
+    }
+    const data = await response.json();
+    return data.length > 0;
+  } catch {
+    return false;
+  }
+};
+```
+
+## Configuration
+
+### Tailwind CSS
+
+The project uses Tailwind CSS v4. Configuration is in:
+- `postcss.config.mjs` - PostCSS configuration
+- `src/app/index.css` - Tailwind directives
+
+### TypeScript
+
+TypeScript configuration is in `tsconfig.json` with strict mode enabled.
+
+### ESLint
+
+ESLint is configured with Next.js recommended rules in `eslint.config.mjs`.
+
+## Browser Compatibility
+
+- Modern browsers with ES6+ support
+- LocalStorage API required
+- Web Speech API for pronunciation (optional)
+
+## Troubleshooting
+
+### Issue: Words not saving
+
+**Solution**: Ensure LocalStorage is enabled in your browser and you're not in incognito/private mode.
+
+### Issue: Translation not working
+
+**Solution**: The app uses Google Translate API. If it fails, it falls back to a built-in dictionary. Check your internet connection.
+
+### Issue: Pronunciation not working
+
+**Solution**: The Web Speech API may not be supported in your browser. Try using Chrome, Edge, or Safari.
+
+### Issue: Build errors
+
+**Solution**: 
+```bash
+rm -rf node_modules package-lock.json
+npm install
+npm run build
+```
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+**wind2729@gmail.com**
+
+## Acknowledgments
+
+- [Dictionary API](https://dictionaryapi.dev/) for word definitions
+- [Google Translate](https://translate.google.com/) for translations
+- [Next.js](https://nextjs.org/) team for the amazing framework
+- [Vercel](https://vercel.com/) for hosting solutions
