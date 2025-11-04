@@ -1,12 +1,14 @@
 import { useLocalStorage } from "react-use";
 import { makeAutoObservable } from "mobx";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 class Words {
   static MAX_RANDOM_WORDS = 5;
 
   wordTranslations: Map<string, string> = new Map();
   userInputs: Map<string, string> = new Map();
+  // Cache for all words to avoid repeated localStorage reads
+  private _allWordsCache: Map<string, string> = new Map();
 
   constructor() {
     makeAutoObservable(this);
@@ -18,18 +20,26 @@ class Words {
 
   addWord(word: string, translation: string) {
     this.wordTranslations.set(word, translation);
+    this._allWordsCache.set(word, translation);
   }
 
   deleteWord(word: string) {
     this.wordTranslations.delete(word);
+    this._allWordsCache.delete(word);
   }
 
   removeAllWords() {
     this.wordTranslations.clear();
+    this._allWordsCache.clear();
   }
 
   setUserInput(word: string, value: string) {
     this.userInputs.set(word, value);
+  }
+
+  // Update cache from localStorage
+  updateCache(words: [string, string][]) {
+    this._allWordsCache = new Map(words);
   }
 
   get correct() {
@@ -38,47 +48,51 @@ class Words {
   }
 
   get allWords(): Map<string, string> {
-    const storedWords = localStorage.getItem("words");
-    if (storedWords) {
-      try {
-        const parsedWords = JSON.parse(storedWords);
-        return new Map(parsedWords);
-      } catch {
-        return new Map();
-      }
+    return this._allWordsCache;
+  }
+
+  // Fisher-Yates shuffle algorithm - O(n) complexity
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    return new Map();
+    return shuffled;
   }
 
   getRandomWords(max: number = Words.MAX_RANDOM_WORDS): [string, string][] {
-    const storedWords = Array.from(this.allWords.entries());
+    const storedWords = Array.from(this._allWordsCache.entries());
     if (storedWords.length > 0) {
-      const shuffled = [...storedWords].sort(() => 0.5 - Math.random());
+      const shuffled = this.shuffleArray(storedWords);
       return shuffled.slice(0, max);
     }
     return [];
   }
 }
 
-const words = new Words();
-
 export const useWords = () => {
+  // Create instance per hook usage instead of global singleton
+  const [words] = useState(() => new Words());
   const [storedWords, setStoredWords] = useLocalStorage<[string, string][]>("words", []);
 
   useEffect(() => {
-    if (storedWords && words.wordTranslations.size === 0) {
-      words.setWords(storedWords);
+    if (storedWords) {
+      words.updateCache(storedWords);
+      if (words.wordTranslations.size === 0) {
+        words.setWords(storedWords);
+      }
     }
-  }, [storedWords]);
+  }, [storedWords, words]);
 
   const addWord = (word: string, translation: string) => {
     words.addWord(word, translation);
-    setStoredWords(Array.from(words.wordTranslations.entries()));
+    setStoredWords(Array.from(words.allWords.entries()));
   };
 
   const deleteWord = (word: string) => {
     words.deleteWord(word);
-    setStoredWords(Array.from(words.wordTranslations.entries()));
+    setStoredWords(Array.from(words.allWords.entries()));
   };
 
   const removeAllWords = () => {

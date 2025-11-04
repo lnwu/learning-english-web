@@ -11,16 +11,7 @@ const Home = () => {
 
   useEffect(() => {
     setIsClient(true);
-    const storedWords = localStorage.getItem("words");
-    if (storedWords) {
-      try {
-        const parsedWords = JSON.parse(storedWords);
-        words.setWords(parsedWords);
-      } catch (error) {
-        console.error("Error parsing stored words:", error);
-      }
-    }
-  }, [words]);
+  }, []);
 
   return (
     <main>

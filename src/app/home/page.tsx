@@ -1,7 +1,7 @@
 "use client";
 
 import { Input, Button } from "@/components/ui";
-import { useEffect, useState, useRef, type FormEvent } from "react";
+import { useEffect, useState, useRef, useMemo, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useWords } from "@/hooks";
@@ -10,15 +10,21 @@ const Home = observer(() => {
   const { words } = useWords();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
+  const [randomWords, setRandomWords] = useState<[string, string][]>([]);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Initialize random words only once
   useEffect(() => {
-    words.setWords(words.getRandomWords());
-  }, [words]);
+    if (isClient && randomWords.length === 0) {
+      const newWords = words.getRandomWords();
+      setRandomWords(newWords);
+      words.setWords(newWords);
+    }
+  }, [isClient, words, randomWords.length]);
 
   useEffect(() => {
     if (shouldFocusFirst && words.wordTranslations.size > 0) {
@@ -35,7 +41,9 @@ const Home = observer(() => {
 
   const refreshWords = () => {
     words.userInputs.clear();
-    words.setWords(words.getRandomWords());
+    const newWords = words.getRandomWords();
+    setRandomWords(newWords);
+    words.setWords(newWords);
     setShouldFocusFirst(true);
   };
 
@@ -47,28 +55,36 @@ const Home = observer(() => {
     refreshWords();
   };
 
+  // Memoize processed word data to avoid reprocessing on every render
+  const processedWords = useMemo(() => {
+    return Array.from(words.wordTranslations.entries()).map(([word, translation]) => {
+      const segments = translation.split("\n").filter(Boolean);
+      let englishDefinition = "";
+      let chineseTranslation = "";
+
+      if (segments.length > 1) {
+        [englishDefinition, chineseTranslation] = segments;
+      } else if (segments.length === 1) {
+        englishDefinition = segments[0];
+      }
+
+      const displayLines = chineseTranslation ? [chineseTranslation] : [];
+      if (englishDefinition) {
+        displayLines.push(englishDefinition);
+      }
+      const displayTranslation = displayLines.join("\n");
+
+      return { word, displayTranslation };
+    });
+  }, [words.wordTranslations]);
+
   return (
     isClient && (
       <main>
         <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
         <ul className="space-y-2">
-          {Array.from(words.wordTranslations.entries()).map(([word, translation]) => {
+          {processedWords.map(({ word, displayTranslation }) => {
             const inputValue = words.userInputs.get(word) || "";
-            const segments = translation.split("\n").filter(Boolean);
-            let englishDefinition = "";
-            let chineseTranslation = "";
-
-            if (segments.length > 1) {
-              [englishDefinition, chineseTranslation] = segments;
-            } else if (segments.length === 1) {
-              englishDefinition = segments[0];
-            }
-
-            const displayLines = chineseTranslation ? [chineseTranslation] : [];
-            if (englishDefinition) {
-              displayLines.push(englishDefinition);
-            }
-            const displayTranslation = displayLines.join("\n");
 
             return (
               <li key={word} className="flex items-center space-x-2">
