@@ -1,6 +1,7 @@
 {
-  "name": "nextjs-template",
-  "version": "0.0.0",
+  "name": "learning-english",
+  "version": "1.0.0",
+  "description": "A modern web application to help users learn English vocabulary through interactive practice and automatic translations",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -35,16 +36,23 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lnwu/nextjs-template.git"
+    "url": "git+https://github.com/lnwu/learning-english.git"
   },
   "keywords": [
+    "english",
+    "learning",
+    "vocabulary",
+    "education",
+    "language",
     "nextjs",
-    "template"
+    "react",
+    "typescript",
+    "translation"
   ],
   "author": "wind2729@gmail.com",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/lnwu/nextjs-template/issues"
+    "url": "https://github.com/lnwu/learning-english/issues"
   },
-  "homepage": "https://github.com/lnwu/nextjs-template#readme"
+  "homepage": "https://github.com/lnwu/learning-english#readme"
 }
