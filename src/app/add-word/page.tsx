@@ -4,8 +4,9 @@ import { Input, Button } from "@/components/ui";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useWords } from "@/hooks";
+import { Header } from "@/components/header";
 
-const Home = () => {
+const AddWord = () => {
   const { words, addWord } = useWords();
   const [word, setWord] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,9 @@ const Home = () => {
   const translateToChinese = async (word: string): Promise<string | null> => {
     try {
       // Try Google Translate API first
-      const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(word)}`);
+      const response = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(word)}`
+      );
 
       if (!response.ok) {
         throw new Error("Translation failed");
@@ -65,12 +68,16 @@ const Home = () => {
 
   const getEnglishDefinition = async (word: string): Promise<string | null> => {
     try {
-      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+      const response = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
+      );
       if (!response.ok) {
         throw new Error("Word not found");
       }
       const data = await response.json();
-      return data.length > 0 ? data[0].meanings[0].definitions[0].definition : null;
+      return data.length > 0
+        ? data[0].meanings[0].definitions[0].definition
+        : null;
     } catch {
       return null;
     }
@@ -78,7 +85,9 @@ const Home = () => {
 
   const validateWord = async (word: string): Promise<boolean> => {
     try {
-      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+      const response = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
+      );
       if (!response.ok) {
         throw new Error("Word not found");
       }
@@ -135,27 +144,45 @@ const Home = () => {
       return;
     }
 
-    addWord(word, combinedTranslation);
-    clear();
-    setLoading(false);
+    try {
+      await addWord(word, combinedTranslation);
+      clear();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Failed to add word. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <main className="space-y-4">
-      <form className="flex space-x-2" onSubmit={(e) => e.preventDefault()}>
-        <Input placeholder="Word" value={word} onChange={(e) => setWord(e.target.value.toLowerCase())} ref={inputRef} />
-        <Button onClick={handleAddWord} disabled={loading}>
-          Add
-        </Button>
-        <Link href="/">
-          <Button type="button">Home</Button>
-        </Link>
-        <Link href="/all-words">
-          <Button type="button">View All Words</Button>
-        </Link>
-      </form>
-    </main>
+    <div className="w-full">
+      <Header />
+      <main className="container mx-auto px-4 space-y-4">
+        <h1 className="text-2xl font-bold">Add New Word</h1>
+        <form className="flex space-x-2" onSubmit={(e) => e.preventDefault()}>
+          <Input
+            placeholder="Word"
+            value={word}
+            onChange={(e) => setWord(e.target.value.toLowerCase())}
+            ref={inputRef}
+          />
+          <Button onClick={handleAddWord} disabled={loading}>
+            {loading ? "Adding..." : "Add"}
+          </Button>
+          <Link href="/home">
+            <Button type="button" variant="outline">
+              Home
+            </Button>
+          </Link>
+          <Link href="/all-words">
+            <Button type="button" variant="outline">
+              View All Words
+            </Button>
+          </Link>
+        </form>
+      </main>
+    </div>
   );
 };
 
-export default Home;
+export default AddWord;

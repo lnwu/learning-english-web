@@ -1,12 +1,13 @@
-import { useLocalStorage } from "react-use";
 import { makeAutoObservable } from "mobx";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 class Words {
   static MAX_RANDOM_WORDS = 5;
 
   wordTranslations: Map<string, string> = new Map();
   userInputs: Map<string, string> = new Map();
+  loading: boolean = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -32,26 +33,24 @@ class Words {
     this.userInputs.set(word, value);
   }
 
+  setLoading(loading: boolean) {
+    this.loading = loading;
+  }
+
   get correct() {
     const randomWords = this.getRandomWords();
-    return this.userInputs.size === randomWords.length && Array.from(this.userInputs.entries()).every(([word, value]) => word === value);
+    return (
+      this.userInputs.size === randomWords.length &&
+      Array.from(this.userInputs.entries()).every(([word, value]) => word === value)
+    );
   }
 
   get allWords(): Map<string, string> {
-    const storedWords = localStorage.getItem("words");
-    if (storedWords) {
-      try {
-        const parsedWords = JSON.parse(storedWords);
-        return new Map(parsedWords);
-      } catch {
-        return new Map();
-      }
-    }
-    return new Map();
+    return this.wordTranslations;
   }
 
   getRandomWords(max: number = Words.MAX_RANDOM_WORDS): [string, string][] {
-    const storedWords = Array.from(this.allWords.entries());
+    const storedWords = Array.from(this.wordTranslations.entries());
     if (storedWords.length > 0) {
       const shuffled = [...storedWords].sort(() => 0.5 - Math.random());
       return shuffled.slice(0, max);
@@ -63,27 +62,102 @@ class Words {
 const words = new Words();
 
 export const useWords = () => {
-  const [storedWords, setStoredWords] = useLocalStorage<[string, string][]>("words", []);
+  const { status } = useSession();
+  const [initialized, setInitialized] = useState(false);
 
+  // Fetch words from API when user is authenticated
   useEffect(() => {
-    if (storedWords && words.wordTranslations.size === 0) {
-      words.setWords(storedWords);
+    const fetchWords = async () => {
+      if (status === "authenticated" && !initialized) {
+        words.setLoading(true);
+        try {
+          const response = await fetch("/api/words");
+          if (response.ok) {
+            const data = await response.json();
+            const wordMap: [string, string][] = data.map((item: { word: string; translation: string }) => [
+              item.word,
+              item.translation,
+            ]);
+            words.setWords(wordMap);
+          }
+        } catch (error) {
+          console.error("Failed to fetch words:", error);
+        } finally {
+          words.setLoading(false);
+          setInitialized(true);
+        }
+      }
+    };
+
+    fetchWords();
+  }, [status, initialized]);
+
+  const addWord = async (word: string, translation: string) => {
+    if (status !== "authenticated") {
+      throw new Error("User must be authenticated to add words");
     }
-  }, [storedWords]);
 
-  const addWord = (word: string, translation: string) => {
-    words.addWord(word, translation);
-    setStoredWords(Array.from(words.wordTranslations.entries()));
+    try {
+      const response = await fetch("/api/words", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ word, translation }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add word");
+      }
+
+      words.addWord(word, translation);
+    } catch (error) {
+      console.error("Failed to add word:", error);
+      throw error;
+    }
   };
 
-  const deleteWord = (word: string) => {
-    words.deleteWord(word);
-    setStoredWords(Array.from(words.wordTranslations.entries()));
+  const deleteWord = async (word: string) => {
+    if (status !== "authenticated") {
+      throw new Error("User must be authenticated to delete words");
+    }
+
+    try {
+      const response = await fetch(`/api/words/${encodeURIComponent(word)}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete word");
+      }
+
+      words.deleteWord(word);
+    } catch (error) {
+      console.error("Failed to delete word:", error);
+      throw error;
+    }
   };
 
-  const removeAllWords = () => {
-    words.removeAllWords();
-    setStoredWords([]);
+  const removeAllWords = async () => {
+    if (status !== "authenticated") {
+      throw new Error("User must be authenticated to delete words");
+    }
+
+    try {
+      const response = await fetch("/api/words", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete all words");
+      }
+
+      words.removeAllWords();
+    } catch (error) {
+      console.error("Failed to delete all words:", error);
+      throw error;
+    }
   };
 
   return { words, addWord, deleteWord, removeAllWords };
