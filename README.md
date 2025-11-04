@@ -2,6 +2,13 @@
 
 A modern web application designed to help users learn English vocabulary through interactive word practice and automatic translations.
 
+## 📖 Documentation
+
+- **[SETUP.md](./SETUP.md)** - Quick start guide (5 minutes setup)
+- **[DATABASE.md](./DATABASE.md)** - Complete database setup and configuration
+- **[MIGRATION.md](./MIGRATION.md)** - Migrate from localStorage to database
+- **[CHANGELOG.md](./CHANGELOG.md)** - What's new in version 2.0
+
 ## Features
 
 - **User Authentication**: Secure sign-in with Google OAuth
