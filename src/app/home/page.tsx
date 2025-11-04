@@ -47,15 +47,6 @@ const Home = observer(() => {
     refreshWords();
   };
 
-  const pronounceWord = (word: string) => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(word);
-      utterance.lang = "en-US";
-      utterance.rate = 0.8;
-      speechSynthesis.speak(utterance);
-    }
-  };
-
   return (
     isClient && (
       <main>
@@ -82,12 +73,7 @@ const Home = observer(() => {
             return (
               <li key={word} className="flex items-center space-x-2">
                 <div className="grow max-w-xs text-right relative">
-                  <div className="flex items-center justify-end space-x-2">
-                    <strong className="whitespace-pre-line">{displayTranslation}</strong>
-                    <button type="button" onClick={() => pronounceWord(word)} className="text-blue-500 hover:text-blue-700 cursor-pointer text-sm" title={`Pronounce: ${word}`}>
-                      🔊
-                    </button>
-                  </div>
+                  <strong className="whitespace-pre-line">{displayTranslation}</strong>
                 </div>
                 <Input 
                   className="w-xs" 
