@@ -127,9 +127,12 @@ The API returns a nested array structure:
 
 ### Important Notes
 
-- This is an unofficial endpoint
+- This is an **unofficial, undocumented endpoint**
 - No API key required
-- May have rate limits or availability issues
+- **Not recommended for production applications**
+- May have **rate limits** or **availability issues**
+- Google can change or disable this endpoint at any time
+- For production use, consider using the [official Google Cloud Translation API](https://cloud.google.com/translate) with proper authentication
 - Should not be used for commercial applications without proper licensing
 
 ## Fallback Mechanism

@@ -34,7 +34,7 @@ npm run dev
 
 You should see:
 ```
-  ▲ Next.js 15.x.x
+  ▲ Next.js 15
   - Local:        http://localhost:3000
   - Experiments:  Turbopack
 ```
@@ -95,7 +95,7 @@ Edit `src/hooks/useWords.ts`:
 
 ```typescript
 class Words {
-  static MAX_RANDOM_WORDS = 10; // Changed from 5 to 10
+  static MAX_RANDOM_WORDS = 10; // Change from 5 to 10
   // ...
 }
 ```
