@@ -16,6 +16,8 @@ class Words {
 
   setWords(words: [string, string][]) {
     this.wordTranslations = new Map(words);
+    // Keep cache in sync when setting words directly
+    this._allWordsCache = new Map(words);
   }
 
   addWord(word: string, translation: string) {
@@ -43,8 +45,11 @@ class Words {
   }
 
   get correct() {
-    const randomWords = this.getRandomWords();
-    return this.userInputs.size === randomWords.length && Array.from(this.userInputs.entries()).every(([word, value]) => word === value);
+    // Check if all current word translations have been correctly answered
+    if (this.wordTranslations.size === 0 || this.userInputs.size !== this.wordTranslations.size) {
+      return false;
+    }
+    return Array.from(this.userInputs.entries()).every(([word, value]) => word === value);
   }
 
   get allWords(): Map<string, string> {

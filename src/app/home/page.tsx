@@ -24,7 +24,9 @@ const Home = observer(() => {
       setRandomWords(newWords);
       words.setWords(newWords);
     }
-  }, [isClient, words, randomWords.length]);
+    // Only depend on isClient and randomWords.length, not the entire words object
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, randomWords.length]);
 
   useEffect(() => {
     if (shouldFocusFirst && words.wordTranslations.size > 0) {
