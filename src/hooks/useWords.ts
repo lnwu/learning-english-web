@@ -1,6 +1,6 @@
 import { useLocalStorage } from "react-use";
 import { makeAutoObservable } from "mobx";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 class Words {
   static MAX_RANDOM_WORDS = 5;
@@ -16,8 +16,7 @@ class Words {
 
   setWords(words: [string, string][]) {
     this.wordTranslations = new Map(words);
-    // Keep cache in sync when setting words directly
-    this._allWordsCache = new Map(words);
+    // Do not overwrite _allWordsCache here; cache should only be updated from localStorage or add/delete methods
   }
 
   addWord(word: string, translation: string) {
@@ -76,9 +75,10 @@ class Words {
   }
 }
 
+// Shared singleton instance of Words
+const words = new Words();
+
 export const useWords = () => {
-  // Create instance per hook usage instead of global singleton
-  const [words] = useState(() => new Words());
   const [storedWords, setStoredWords] = useLocalStorage<[string, string][]>("words", []);
 
   useEffect(() => {
@@ -88,16 +88,16 @@ export const useWords = () => {
         words.setWords(storedWords);
       }
     }
-  }, [storedWords, words]);
+  }, [storedWords]);
 
   const addWord = (word: string, translation: string) => {
     words.addWord(word, translation);
-    setStoredWords(Array.from(words.allWords.entries()));
+    setStoredWords(Array.from(words.wordTranslations.entries()));
   };
 
   const deleteWord = (word: string) => {
     words.deleteWord(word);
-    setStoredWords(Array.from(words.allWords.entries()));
+    setStoredWords(Array.from(words.wordTranslations.entries()));
   };
 
   const removeAllWords = () => {
