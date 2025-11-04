@@ -399,7 +399,9 @@ export const useFetch = (url: string) => {
     const fetchData = async () => {
       try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+        }
         // Process data
       } catch (err) {
         setError(err as Error);

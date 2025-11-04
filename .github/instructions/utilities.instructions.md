@@ -155,7 +155,7 @@ export function deepClone<T>(obj: T): T {
   
   const clonedObj = {} as T;
   for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
       clonedObj[key] = deepClone(obj[key]);
     }
   }
@@ -465,7 +465,7 @@ export function debounce<T extends (...args: any[]) => any>(
   fn: T,
   delay: number
 ): (...args: Parameters<T>) => void {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: ReturnType<typeof setTimeout>;
   
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);
@@ -480,7 +480,7 @@ export function throttle<T extends (...args: any[]) => any>(
   fn: T,
   limit: number
 ): (...args: Parameters<T>) => void {
-  let inThrottle: boolean;
+  let inThrottle = false;
   
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
