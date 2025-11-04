@@ -1,9 +1,33 @@
 "use client";
 
 import { Input, Button } from "@/components/ui";
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useWords } from "@/hooks";
+
+// Move fallback dictionary outside component to avoid recreation on every render
+const FALLBACK_DICTIONARY: Record<string, string> = {
+  hello: "你好",
+  world: "世界",
+  love: "爱",
+  water: "水",
+  food: "食物",
+  house: "房子",
+  car: "汽车",
+  book: "书",
+  computer: "电脑",
+  friend: "朋友",
+  family: "家庭",
+  work: "工作",
+  school: "学校",
+  time: "时间",
+  money: "钱",
+  happy: "快乐",
+  good: "好",
+  bad: "坏",
+  big: "大",
+  small: "小",
+};
 
 const Home = () => {
   const { words, addWord } = useWords();
@@ -11,36 +35,12 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const clear = () => {
+  const clear = useCallback(() => {
     setWord("");
     inputRef.current?.focus();
-  };
+  }, []);
 
-  // Fallback dictionary for common English words
-  const fallbackDictionary: Record<string, string> = {
-    hello: "你好",
-    world: "世界",
-    love: "爱",
-    water: "水",
-    food: "食物",
-    house: "房子",
-    car: "汽车",
-    book: "书",
-    computer: "电脑",
-    friend: "朋友",
-    family: "家庭",
-    work: "工作",
-    school: "学校",
-    time: "时间",
-    money: "钱",
-    happy: "快乐",
-    good: "好",
-    bad: "坏",
-    big: "大",
-    small: "小",
-  };
-
-  const translateToChinese = async (word: string): Promise<string | null> => {
+  const translateToChinese = useCallback(async (word: string): Promise<string | null> => {
     try {
       // Try Google Translate API first
       const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(word)}`);
@@ -59,37 +59,26 @@ const Home = () => {
     } catch (error) {
       console.error("Translation API error:", error);
       // Fallback to local dictionary
-      return fallbackDictionary[word.toLowerCase()] || null;
+      return FALLBACK_DICTIONARY[word.toLowerCase()] || null;
     }
-  };
+  }, []);
 
-  const getEnglishDefinition = async (word: string): Promise<string | null> => {
+  // Combined function to validate and get definition in a single API call
+  const validateAndGetDefinition = useCallback(async (word: string): Promise<{ isValid: boolean; definition: string | null }> => {
     try {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
       if (!response.ok) {
-        throw new Error("Word not found");
+        return { isValid: false, definition: null };
       }
       const data = await response.json();
-      return data.length > 0 ? data[0].meanings[0].definitions[0].definition : null;
+      const definition = data.length > 0 ? data[0].meanings[0].definitions[0].definition : null;
+      return { isValid: true, definition };
     } catch {
-      return null;
+      return { isValid: false, definition: null };
     }
-  };
+  }, []);
 
-  const validateWord = async (word: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-      if (!response.ok) {
-        throw new Error("Word not found");
-      }
-      const data = await response.json();
-      return data.length > 0;
-    } catch {
-      return false;
-    }
-  };
-
-  const handleAddWord = async () => {
+  const handleAddWord = useCallback(async () => {
     if (!word) return;
 
     setLoading(true);
@@ -110,16 +99,20 @@ const Home = () => {
       return;
     }
 
-    const isValidEnglishWord = await validateWord(word);
-    if (!isValidEnglishWord) {
+    // Parallel API calls for better performance
+    const [validationResult, chineseTranslation] = await Promise.all([
+      validateAndGetDefinition(word),
+      translateToChinese(word)
+    ]);
+
+    if (!validationResult.isValid) {
       alert(`The word "${word}" is not recognized as a real word.`);
       clear();
       setLoading(false);
       return;
     }
 
-    const chineseTranslation = await translateToChinese(word);
-    const englishDefinition = await getEnglishDefinition(word);
+    const englishDefinition = validationResult.definition;
 
     let combinedTranslation = "";
     if (chineseTranslation && englishDefinition) {
@@ -138,7 +131,7 @@ const Home = () => {
     addWord(word, combinedTranslation);
     clear();
     setLoading(false);
-  };
+  }, [word, words.wordTranslations, clear, validateAndGetDefinition, translateToChinese, addWord]);
 
   return (
     <main className="space-y-4">
