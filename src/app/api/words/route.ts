@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/auth-options";
+import { auth } from "@/lib/auth/auth-options";
 import { prisma } from "@/lib/prisma/client";
 
 // GET /api/words - Get all words for the authenticated user
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -34,7 +33,7 @@ export async function GET() {
 // POST /api/words - Add a new word
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -88,7 +87,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/words - Delete all words for the authenticated user
 export async function DELETE() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
