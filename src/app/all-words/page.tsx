@@ -1,32 +1,26 @@
 "use client";
 
 import { useWords } from "@/hooks";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 
+// Subscribe function for client-side only rendering
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 const Home = () => {
   const { words, deleteWord } = useWords();
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    setIsClient(true);
-    const storedWords = localStorage.getItem("words");
-    if (storedWords) {
-      try {
-        const parsedWords = JSON.parse(storedWords);
-        words.setWords(parsedWords);
-      } catch (error) {
-        console.error("Error parsing stored words:", error);
-      }
-    }
-  }, [words]);
+  const allWords = isClient ? words.allWords : new Map<string, string>();
 
   return (
     <main>
       <ul>
-        {isClient && words.allWords.size > 0 ? (
-          Array.from(words.allWords.entries()).map(([word, translation], index) => (
+        {allWords.size > 0 ? (
+          Array.from(allWords.entries()).map(([word, translation], index) => (
             <li key={index} className="flex items-center space-x-2">
               <button onClick={() => deleteWord(word)} title="Delete">
                 🗑️
