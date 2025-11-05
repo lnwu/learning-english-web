@@ -4,6 +4,7 @@ A modern web application designed to help users learn English vocabulary through
 
 ## Features
 
+- **Google OAuth Authentication**: Secure sign-in with your Google account
 - **Add New Words**: Automatically fetch English definitions and Chinese translations
 - **Word Validation**: Validates words using dictionary API to ensure they're real English words
 - **Interactive Practice**: Quiz-style interface to practice your vocabulary
@@ -16,6 +17,7 @@ A modern web application designed to help users learn English vocabulary through
 
 - **Framework**: [Next.js 15](https://nextjs.org/) with React 19
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Authentication**: [NextAuth.js v5 (Auth.js)](https://authjs.dev/)
 - **State Management**: [MobX](https://mobx.js.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components**: [Radix UI](https://www.radix-ui.com/)
@@ -40,6 +42,14 @@ cd learning-english
 ```bash
 npm install
 ```
+
+3. Set up Google OAuth authentication:
+   - Follow the detailed guide in [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md)
+   - Copy `.env.example` to `.env.local`:
+     ```bash
+     cp .env.example .env.local
+     ```
+   - Fill in your Google OAuth credentials in `.env.local`
 
 ## Usage
 
@@ -101,6 +111,13 @@ learning-english/
 ```
 
 ## How It Works
+
+### Authentication
+
+1. When you first visit the app, you'll be redirected to the login page
+2. Click **"Sign in with Google"** to authenticate
+3. Grant the requested permissions (email and profile)
+4. You'll be redirected back to the app and can start using it
 
 ### Adding Words
 
@@ -190,6 +207,19 @@ const validateWord = async (word: string): Promise<boolean> => {
 
 ## Configuration
 
+### Authentication
+
+The app uses NextAuth.js v5 (Auth.js) for Google OAuth authentication.
+
+**Required environment variables:**
+- `AUTH_SECRET`: Random secret for session encryption (generate with `openssl rand -base64 32`)
+- `AUTH_GOOGLE_ID`: Your Google OAuth Client ID
+- `AUTH_GOOGLE_SECRET`: Your Google OAuth Client Secret
+- `NEXTAUTH_URL`: Your app URL (e.g., `http://localhost:3000` for development)
+
+**Setup instructions:**
+See [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md) for detailed Google OAuth setup instructions.
+
 ### Tailwind CSS
 
 The project uses Tailwind CSS v4. Configuration is in:
@@ -211,6 +241,20 @@ ESLint is configured with Next.js recommended rules in `eslint.config.mjs`.
 - Web Speech API for pronunciation (optional)
 
 ## Troubleshooting
+
+### Issue: Cannot access the app / Redirected to login page
+
+**Solution**: 
+1. Ensure you've set up Google OAuth credentials (see [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md))
+2. Verify your `.env.local` file has all required variables
+3. Check that your email is added as a test user in Google Cloud Console (for development apps)
+4. Restart the development server after changing `.env.local`
+
+### Issue: "Redirect URI mismatch" error
+
+**Solution**: 
+- Verify the redirect URI in Google Cloud Console is exactly: `http://localhost:3000/api/auth/callback/google`
+- Check for typos (http vs https, trailing slashes, etc.)
 
 ### Issue: Words not saving
 
