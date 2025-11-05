@@ -10,7 +10,9 @@ const Home = () => {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    // Set isClient in a setTimeout to avoid synchronous state update
+    const timer = setTimeout(() => setIsClient(true), 0);
+    
     const storedWords = localStorage.getItem("words");
     if (storedWords) {
       try {
@@ -20,6 +22,8 @@ const Home = () => {
         console.error("Error parsing stored words:", error);
       }
     }
+    
+    return () => clearTimeout(timer);
   }, [words]);
 
   return (
