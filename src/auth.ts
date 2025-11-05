@@ -13,7 +13,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     authorized: async ({ auth }) => {
-      // Logged in users are authenticated, otherwise redirect to login page
+      // Return true if user is authenticated, false otherwise
+      // NextAuth handles the redirect to signIn page when false is returned
       return !!auth;
     },
   },
