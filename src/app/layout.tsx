@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import "./index.css";
 
 import type { Metadata } from "next";
@@ -30,6 +31,7 @@ const RootLayout: FC<{ children: ReactNode }> = async ({ children }) => {
             {children}
           </main>
         </SessionProvider>
+        <Analytics />
       </body>
     </html>
   );
