@@ -4,6 +4,7 @@ import { useFirestoreWords } from "@/hooks";
 import { migrateLocalStorageToFirestore } from "@/lib/migrateToFirestore";
 import { useSession } from "next-auth/react";
 import { useSyncExternalStore, useState, useEffect } from "react";
+import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 
@@ -12,7 +13,7 @@ const subscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
 
-const Home = () => {
+const Home = observer(() => {
   const { data: session } = useSession();
   const { words, deleteWord, loading, error } = useFirestoreWords();
   const isClient = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
@@ -110,9 +111,16 @@ const Home = () => {
       <ul className="space-y-2">
         {allWords.size > 0 ? (
           Array.from(allWords.entries()).map(([word, translation], index) => (
-            <li key={index} className="flex items-center space-x-2 p-3 border rounded">
+            <li key={word} className="flex items-center space-x-2 p-3 border rounded">
               <button
-                onClick={() => deleteWord(word)}
+                onClick={async () => {
+                  try {
+                    await deleteWord(word);
+                  } catch (error) {
+                    console.error("Delete failed:", error);
+                    alert("Failed to delete word. Please try again.");
+                  }
+                }}
                 title="Delete"
                 className="text-red-600 hover:text-red-800"
               >
@@ -133,6 +141,6 @@ const Home = () => {
       </Link>
     </main>
   );
-};
+});
 
 export default Home;

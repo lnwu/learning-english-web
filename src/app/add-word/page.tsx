@@ -137,7 +137,7 @@ const Home = () => {
 
     try {
       await addWord(word, combinedTranslation);
-      alert(`Successfully added "${word}" to Firestore!`);
+      // Success - just clear the input, no alert needed
       clear();
     } catch (error) {
       console.error("Failed to add word:", error);
