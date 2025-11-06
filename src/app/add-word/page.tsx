@@ -3,10 +3,10 @@
 import { Input, Button } from "@/components/ui";
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { useWords } from "@/hooks";
+import { useFirestoreWords } from "@/hooks";
 
 const Home = () => {
-  const { words, addWord } = useWords();
+  const { words, addWord, loading: wordsLoading, error: wordsError } = useFirestoreWords();
   const [word, setWord] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -135,10 +135,38 @@ const Home = () => {
       return;
     }
 
-    addWord(word, combinedTranslation);
-    clear();
-    setLoading(false);
+    try {
+      await addWord(word, combinedTranslation);
+      alert(`Successfully added "${word}" to Firestore!`);
+      clear();
+    } catch (error) {
+      console.error("Failed to add word:", error);
+      alert(`Failed to add word to cloud: ${error}`);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (wordsLoading) {
+    return (
+      <main className="space-y-4">
+        <div className="text-center">Loading...</div>
+      </main>
+    );
+  }
+
+  if (wordsError) {
+    return (
+      <main className="space-y-4">
+        <div className="text-center text-red-500">Error: {wordsError}</div>
+        <div className="text-center">
+          <Link href="/">
+            <Button>Go Home</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="space-y-4">

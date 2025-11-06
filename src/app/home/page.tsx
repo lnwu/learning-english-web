@@ -4,10 +4,10 @@ import { Input, Button } from "@/components/ui";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
-import { useWords } from "@/hooks";
+import { useFirestoreWords } from "@/hooks";
 
 const Home = observer(() => {
-  const { words } = useWords();
+  const { words, loading, error } = useFirestoreWords();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -46,6 +46,27 @@ const Home = observer(() => {
     }
     refreshWords();
   };
+
+  if (loading) {
+    return (
+      <main>
+        <div className="text-center">Loading your words...</div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main>
+        <div className="text-center text-red-500">Error: {error}</div>
+        <div className="text-center mt-4">
+          <Link href="/add-word">
+            <Button>Add New Word</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     isClient && (

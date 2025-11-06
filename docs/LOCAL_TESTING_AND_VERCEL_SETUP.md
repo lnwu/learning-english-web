@@ -66,9 +66,14 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-4GQEGC94C2
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own data
+    // Allow users to read and write only their own data
     // Using email as document ID, so we check against the email claim
     match /users/{userId}/words/{wordId} {
+      allow read, write: if request.auth != null && request.auth.token.email == userId;
+    }
+    
+    // Allow users to access their user document
+    match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.token.email == userId;
     }
     
