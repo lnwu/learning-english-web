@@ -1,0 +1,10 @@
+# SOPS Configuration
+# Defines which keys to use for encrypting secrets
+
+# Use Google Cloud KMS for encryption
+creation_rules:
+  - gcp_kms: projects/PLACEHOLDER_PROJECT_ID/locations/global/keyRings/sops/cryptoKeys/sops-key
+    
+# File patterns that should be encrypted
+# Only encrypt files matching these patterns
+encrypted_regex: '^(auth|firebase|secrets)$'

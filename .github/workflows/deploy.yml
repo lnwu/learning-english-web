@@ -52,16 +52,6 @@ jobs:
           TF_VAR_vercel_token: ${{ secrets.VERCEL_TOKEN }}
           TF_VAR_vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
           TF_VAR_vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
-          TF_VAR_auth_secret: ${{ secrets.AUTH_SECRET }}
-          TF_VAR_auth_google_id: ${{ secrets.AUTH_GOOGLE_ID }}
-          TF_VAR_auth_google_secret: ${{ secrets.AUTH_GOOGLE_SECRET }}
-          TF_VAR_firebase_project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
-          TF_VAR_firebase_api_key: ${{ secrets.FIREBASE_API_KEY }}
-          TF_VAR_firebase_auth_domain: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
-          TF_VAR_firebase_storage_bucket: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          TF_VAR_firebase_messaging_sender_id: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
-          TF_VAR_firebase_app_id: ${{ secrets.FIREBASE_APP_ID }}
-          TF_VAR_firebase_measurement_id: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
         run: |
           terraform plan -no-color -out=tfplan
           terraform show -no-color tfplan > plan_output.txt
@@ -110,32 +100,71 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install SOPS
+        run: |
+          wget https://github.com/mozilla/sops/releases/download/v3.8.1/sops-v3.8.1.linux.amd64
+          chmod +x sops-v3.8.1.linux.amd64
+          sudo mv sops-v3.8.1.linux.amd64 /usr/local/bin/sops
+
+      - name: Decrypt secrets
+        run: |
+          # Decrypt secrets.enc.yaml using SOPS with GCP KMS
+          if [ -f secrets.enc.yaml ]; then
+            sops --decrypt secrets.enc.yaml > secrets.yaml
+            
+            # Export secrets as environment variables for build
+            export AUTH_SECRET=$(yq eval '.auth.secret' secrets.yaml)
+            export AUTH_GOOGLE_ID=$(yq eval '.auth.google.client_id' secrets.yaml)
+            export AUTH_GOOGLE_SECRET=$(yq eval '.auth.google.client_secret' secrets.yaml)
+            export NEXT_PUBLIC_FIREBASE_API_KEY=$(yq eval '.firebase.api_key' secrets.yaml)
+            export NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$(yq eval '.firebase.auth_domain' secrets.yaml)
+            export NEXT_PUBLIC_FIREBASE_PROJECT_ID=$(yq eval '.firebase.project_id' secrets.yaml)
+            export NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$(yq eval '.firebase.storage_bucket' secrets.yaml)
+            export NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$(yq eval '.firebase.messaging_sender_id' secrets.yaml)
+            export NEXT_PUBLIC_FIREBASE_APP_ID=$(yq eval '.firebase.app_id' secrets.yaml)
+            export NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=$(yq eval '.firebase.measurement_id' secrets.yaml)
+            
+            # Save to env file for subsequent steps
+            echo "AUTH_SECRET=$AUTH_SECRET" >> $GITHUB_ENV
+            echo "AUTH_GOOGLE_ID=$AUTH_GOOGLE_ID" >> $GITHUB_ENV
+            echo "AUTH_GOOGLE_SECRET=$AUTH_GOOGLE_SECRET" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID" >> $GITHUB_ENV
+            
+            # Clean up decrypted file
+            rm secrets.yaml
+          else
+            echo "Warning: secrets.enc.yaml not found. Using environment variables from GitHub Secrets."
+          fi
+
+      - name: Install yq (YAML processor)
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
       - name: Lint code
         run: npm run lint
 
       - name: Build application
         run: npm run build
-        env:
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-          AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
-          AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
       - name: Terraform Init
         working-directory: ./terraform
@@ -148,20 +177,53 @@ jobs:
           TF_VAR_vercel_token: ${{ secrets.VERCEL_TOKEN }}
           TF_VAR_vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
           TF_VAR_vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
-          TF_VAR_auth_secret: ${{ secrets.AUTH_SECRET }}
-          TF_VAR_auth_google_id: ${{ secrets.AUTH_GOOGLE_ID }}
-          TF_VAR_auth_google_secret: ${{ secrets.AUTH_GOOGLE_SECRET }}
-          TF_VAR_firebase_project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
-          TF_VAR_firebase_api_key: ${{ secrets.FIREBASE_API_KEY }}
-          TF_VAR_firebase_auth_domain: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
-          TF_VAR_firebase_storage_bucket: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          TF_VAR_firebase_messaging_sender_id: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
-          TF_VAR_firebase_app_id: ${{ secrets.FIREBASE_APP_ID }}
-          TF_VAR_firebase_measurement_id: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
         run: terraform apply -auto-approve
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
+
+      - name: Update Vercel Environment Variables
+        run: |
+          # Update Vercel environment variables from decrypted secrets
+          if [ -f secrets.enc.yaml ]; then
+            # Decrypt again for Vercel update (previous decrypt was cleaned up)
+            sops --decrypt secrets.enc.yaml > secrets.yaml
+            
+            # Update Vercel environment variables
+            vercel env rm AUTH_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$AUTH_SECRET" | vercel env add AUTH_SECRET production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm AUTH_GOOGLE_ID production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$AUTH_GOOGLE_ID" | vercel env add AUTH_GOOGLE_ID production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm AUTH_GOOGLE_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$AUTH_GOOGLE_SECRET" | vercel env add AUTH_GOOGLE_SECRET production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            # Firebase variables (public, but still managed via SOPS)
+            vercel env rm NEXT_PUBLIC_FIREBASE_API_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$NEXT_PUBLIC_FIREBASE_API_KEY" | vercel env add NEXT_PUBLIC_FIREBASE_API_KEY production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN" | vercel env add NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm NEXT_PUBLIC_FIREBASE_PROJECT_ID production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$NEXT_PUBLIC_FIREBASE_PROJECT_ID" | vercel env add NEXT_PUBLIC_FIREBASE_PROJECT_ID production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET" | vercel env add NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" | vercel env add NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm NEXT_PUBLIC_FIREBASE_APP_ID production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$NEXT_PUBLIC_FIREBASE_APP_ID" | vercel env add NEXT_PUBLIC_FIREBASE_APP_ID production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            vercel env rm NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
+            echo "$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID" | vercel env add NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID production --token=${{ secrets.VERCEL_TOKEN }}
+            
+            # Clean up
+            rm secrets.yaml
+          fi
 
       - name: Pull Vercel Environment Information
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}

@@ -42,58 +42,6 @@ variable "vercel_project_name" {
   default     = "learning-english"
 }
 
-# NextAuth Configuration
-variable "auth_secret" {
-  description = "NextAuth secret for session encryption (generate with: openssl rand -base64 32)"
-  type        = string
-  sensitive   = true
-}
-
-variable "auth_google_id" {
-  description = "Google OAuth Client ID"
-  type        = string
-  sensitive   = true
-}
-
-variable "auth_google_secret" {
-  description = "Google OAuth Client Secret"
-  type        = string
-  sensitive   = true
-}
-
-# Firebase Configuration
-variable "firebase_project_id" {
-  description = "Firebase Project ID"
-  type        = string
-}
-
-variable "firebase_api_key" {
-  description = "Firebase API Key"
-  type        = string
-  sensitive   = true
-}
-
-variable "firebase_auth_domain" {
-  description = "Firebase Auth Domain"
-  type        = string
-}
-
-variable "firebase_storage_bucket" {
-  description = "Firebase Storage Bucket"
-  type        = string
-}
-
-variable "firebase_messaging_sender_id" {
-  description = "Firebase Messaging Sender ID"
-  type        = string
-}
-
-variable "firebase_app_id" {
-  description = "Firebase App ID"
-  type        = string
-}
-
-variable "firebase_measurement_id" {
-  description = "Firebase Measurement ID"
-  type        = string
-}
+# Note: Application secrets (AUTH_SECRET, OAuth credentials, Firebase config)
+# are now stored in the encrypted secrets.enc.yaml file in the repository
+# and decrypted during CI/CD deployment using SOPS with Google Cloud KMS

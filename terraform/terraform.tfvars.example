@@ -11,23 +11,25 @@ github_repo = "lnwu/learning-english"
 
 # Vercel Configuration
 # Get these from: https://vercel.com/account/tokens
-vercel_token       = "your-vercel-api-token"
-vercel_org_id      = "your-vercel-org-id"
-vercel_project_id  = "your-vercel-project-id"
+vercel_token        = "your-vercel-api-token"
+vercel_org_id       = "your-vercel-org-id"
+vercel_project_id   = "your-vercel-project-id"
 vercel_project_name = "learning-english"
 
-# NextAuth Configuration
-# Generate auth_secret with: openssl rand -base64 32
-auth_secret        = "your-auth-secret-here"
-auth_google_id     = "your-google-oauth-client-id"
-auth_google_secret = "your-google-oauth-client-secret"
-
-# Firebase Configuration
-# Get these from Firebase Console: https://console.firebase.google.com/
-firebase_project_id          = "your-firebase-project-id"
-firebase_api_key             = "your-firebase-api-key"
-firebase_auth_domain         = "your-project.firebaseapp.com"
-firebase_storage_bucket      = "your-project.firebasestorage.app"
-firebase_messaging_sender_id = "your-messaging-sender-id"
-firebase_app_id              = "your-firebase-app-id"
-firebase_measurement_id      = "your-measurement-id"
+# ============================================================================
+# Application Secrets (AUTH, Firebase, etc.) are NOW managed differently:
+# ============================================================================
+# Instead of adding them here, they are stored encrypted in secrets.enc.yaml
+# 
+# Steps to manage application secrets:
+# 1. Copy secrets.yaml.example to secrets.yaml
+# 2. Fill in your actual values (AUTH_SECRET, OAuth credentials, Firebase config)
+# 3. Encrypt with SOPS: sops --encrypt secrets.yaml > secrets.enc.yaml
+# 4. Delete secrets.yaml (unencrypted)
+# 5. Commit secrets.enc.yaml to git
+# 
+# Benefits:
+# - Secrets are version controlled (encrypted)
+# - Easy to rotate and update
+# - Team members can view/edit with proper KMS permissions
+# - Only 3 GitHub Secrets needed (GCP, Vercel credentials)

@@ -54,58 +54,41 @@ resource "google_project_service" "required_apis" {
     "identitytoolkit.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "cloudkms.googleapis.com",
   ])
 
   service            = each.key
   disable_on_destroy = false
 }
 
+# Create KMS Key Ring for SOPS encryption
+resource "google_kms_key_ring" "sops" {
+  name     = "sops"
+  location = "global"
+  
+  depends_on = [google_project_service.required_apis]
+}
+
+# Create KMS Crypto Key for SOPS
+resource "google_kms_crypto_key" "sops" {
+  name     = "sops-key"
+  key_ring = google_kms_key_ring.sops.id
+  purpose  = "ENCRYPT_DECRYPT"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 # Google Cloud Secret Manager module
+# Now only stores provider credentials, not application secrets
 module "secret_manager" {
   source = "./modules/secret-manager"
 
   project_id = var.gcp_project_id
   secrets = {
-    auth_secret = {
-      value       = var.auth_secret
-      description = "NextAuth secret for session encryption"
-    }
-    auth_google_id = {
-      value       = var.auth_google_id
-      description = "Google OAuth Client ID"
-    }
-    auth_google_secret = {
-      value       = var.auth_google_secret
-      description = "Google OAuth Client Secret"
-    }
-    firebase_api_key = {
-      value       = var.firebase_api_key
-      description = "Firebase API Key"
-    }
-    firebase_auth_domain = {
-      value       = var.firebase_auth_domain
-      description = "Firebase Auth Domain"
-    }
-    firebase_project_id = {
-      value       = var.firebase_project_id
-      description = "Firebase Project ID"
-    }
-    firebase_storage_bucket = {
-      value       = var.firebase_storage_bucket
-      description = "Firebase Storage Bucket"
-    }
-    firebase_messaging_sender_id = {
-      value       = var.firebase_messaging_sender_id
-      description = "Firebase Messaging Sender ID"
-    }
-    firebase_app_id = {
-      value       = var.firebase_app_id
-      description = "Firebase App ID"
-    }
-    firebase_measurement_id = {
-      value       = var.firebase_measurement_id
-      description = "Firebase Measurement ID"
-    }
+    # Only provider credentials in Secret Manager
+    # Application secrets are encrypted with SOPS in the repository
   }
 
   depends_on = [google_project_service.required_apis]
@@ -126,59 +109,10 @@ module "vercel_deployment" {
     production_branch = "master"
   }
 
-  # Environment variables from Google Secret Manager
-  environment_variables = {
-    AUTH_SECRET = {
-      value     = var.auth_secret
-      target    = ["production", "preview"]
-      sensitive = true
-    }
-    AUTH_GOOGLE_ID = {
-      value     = var.auth_google_id
-      target    = ["production", "preview"]
-      sensitive = true
-    }
-    AUTH_GOOGLE_SECRET = {
-      value     = var.auth_google_secret
-      target    = ["production", "preview"]
-      sensitive = true
-    }
-    NEXT_PUBLIC_FIREBASE_API_KEY = {
-      value     = var.firebase_api_key
-      target    = ["production", "preview"]
-      sensitive = false
-    }
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = {
-      value     = var.firebase_auth_domain
-      target    = ["production", "preview"]
-      sensitive = false
-    }
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID = {
-      value     = var.firebase_project_id
-      target    = ["production", "preview"]
-      sensitive = false
-    }
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = {
-      value     = var.firebase_storage_bucket
-      target    = ["production", "preview"]
-      sensitive = false
-    }
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = {
-      value     = var.firebase_messaging_sender_id
-      target    = ["production", "preview"]
-      sensitive = false
-    }
-    NEXT_PUBLIC_FIREBASE_APP_ID = {
-      value     = var.firebase_app_id
-      target    = ["production", "preview"]
-      sensitive = false
-    }
-    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID = {
-      value     = var.firebase_measurement_id
-      target    = ["production", "preview"]
-      sensitive = false
-    }
-  }
+  # Environment variables from encrypted secrets file
+  # These will be populated by the CI/CD pipeline after decrypting secrets.enc.yaml
+  # No sensitive values stored in Terraform state
+  environment_variables = {}
 
   depends_on = [module.secret_manager]
 }
@@ -187,14 +121,14 @@ module "vercel_deployment" {
 resource "google_service_account" "github_actions" {
   account_id   = "github-actions-deploy"
   display_name = "GitHub Actions Deployment Service Account"
-  description  = "Service account for GitHub Actions to access secrets during deployment"
+  description  = "Service account for GitHub Actions to deploy and decrypt secrets"
 }
 
-# Grant Secret Manager access to GitHub Actions service account
-resource "google_project_iam_member" "github_actions_secret_accessor" {
-  project = var.gcp_project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
+# Grant KMS decrypter role for SOPS
+resource "google_kms_crypto_key_iam_member" "github_actions_decrypter" {
+  crypto_key_id = google_kms_crypto_key.sops.id
+  role          = "roles/cloudkms.cryptoKeyDecrypter"
+  member        = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
 # Grant necessary Firebase permissions
