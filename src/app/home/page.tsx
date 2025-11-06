@@ -10,19 +10,23 @@ const Home = observer(() => {
   const { words, loading, error } = useFirestoreWords();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
+  const [randomWords, setRandomWords] = useState<[string, string][]>([]);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Initialize random words when words are loaded
   useEffect(() => {
-    words.setWords(words.getRandomWords());
-  }, [words]);
+    if (!loading && words.allWords.size > 0 && randomWords.length === 0) {
+      setRandomWords(words.getRandomWords());
+    }
+  }, [loading, words.allWords.size, randomWords.length, words]);
 
   useEffect(() => {
-    if (shouldFocusFirst && words.wordTranslations.size > 0) {
-      const firstWord = Array.from(words.wordTranslations.keys())[0];
+    if (shouldFocusFirst && randomWords.length > 0) {
+      const firstWord = randomWords[0][0];
       if (firstWord) {
         const firstInput = inputRefs.current.get(firstWord);
         if (firstInput) {
@@ -31,17 +35,24 @@ const Home = observer(() => {
         }
       }
     }
-  }, [shouldFocusFirst, words.wordTranslations]);
+  }, [shouldFocusFirst, randomWords]);
 
   const refreshWords = () => {
     words.userInputs.clear();
-    words.setWords(words.getRandomWords());
+    setRandomWords(words.getRandomWords());
     setShouldFocusFirst(true);
+  };
+
+  const isCorrect = () => {
+    return (
+      words.userInputs.size === randomWords.length &&
+      randomWords.every(([word]) => words.userInputs.get(word) === word)
+    );
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!words.correct) {
+    if (!isCorrect()) {
       return;
     }
     refreshWords();
@@ -73,7 +84,7 @@ const Home = observer(() => {
       <main>
         <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
         <ul className="space-y-2">
-          {Array.from(words.wordTranslations.entries()).map(([word, translation]) => {
+          {randomWords.map(([word, translation]) => {
             const inputValue = words.userInputs.get(word) || "";
             const segments = translation.split("\n").filter(Boolean);
             let englishDefinition = "";
@@ -125,7 +136,7 @@ const Home = observer(() => {
           })}
         </ul>
           <div className="flex space-x-2 justify-end">
-            <Button type="submit" disabled={!words.correct}>
+            <Button type="submit" disabled={!isCorrect()}>
               Refresh
             </Button>
             <Link href="/add-word">
