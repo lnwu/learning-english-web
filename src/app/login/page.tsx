@@ -14,7 +14,13 @@ const LoginPage = () => {
           <form
             action={async () => {
               "use server";
-              await signIn("google", { redirectTo: "/home" });
+              try {
+                await signIn("google", { redirectTo: "/home" });
+              } catch (error) {
+                // NextAuth throws a redirect error which is expected behavior
+                // Re-throw to allow NextAuth to handle the redirect
+                throw error;
+              }
             }}
           >
             <Button type="submit" className="w-full">

@@ -98,14 +98,14 @@ A dialog will appear with your credentials:
 AUTH_SECRET=your-generated-secret-here
 AUTH_GOOGLE_ID=your-client-id-from-google
 AUTH_GOOGLE_SECRET=your-client-secret-from-google
-NEXTAUTH_URL=http://localhost:3000
 ```
+
+**Note:** NextAuth.js v5 automatically detects the URL in local development. Only add `NEXTAUTH_URL` for production deployments or when behind a proxy.
 
 2. Replace the placeholder values:
    - `AUTH_SECRET`: Generate one using `openssl rand -base64 32` in your terminal
    - `AUTH_GOOGLE_ID`: Paste the Client ID from Google
    - `AUTH_GOOGLE_SECRET`: Paste the Client Secret from Google
-   - `NEXTAUTH_URL`: Your app URL (use `http://localhost:3000` for development)
 
 ### 6. Verify Setup
 

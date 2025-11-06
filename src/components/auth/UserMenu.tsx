@@ -17,7 +17,13 @@ export const UserMenu = ({ user }: UserMenuProps) => {
   const [imageError, setImageError] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut({ redirectTo: "/login" });
+    try {
+      await signOut({ redirectTo: "/login" });
+    } catch (error) {
+      console.error("Sign out failed:", error);
+      // Fallback: redirect manually if signOut fails
+      window.location.href = "/login";
+    }
   };
 
   return (

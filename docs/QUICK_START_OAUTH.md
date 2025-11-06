@@ -40,10 +40,9 @@ AUTH_SECRET=paste-generated-secret-here
 # From Google Cloud Console
 AUTH_GOOGLE_ID=paste-client-id-here
 AUTH_GOOGLE_SECRET=paste-client-secret-here
-
-# For local development
-NEXTAUTH_URL=http://localhost:3000
 ```
+
+**Note:** NextAuth.js v5 does not require `NEXTAUTH_URL` for local development. It automatically detects `http://localhost:3000`. Only set `NEXTAUTH_URL` in production or when behind a proxy.
 
 3. Generate AUTH_SECRET:
 ```bash

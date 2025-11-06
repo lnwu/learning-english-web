@@ -142,7 +142,7 @@ Potential improvements that could be made:
 ## Technical Details
 
 ### Dependencies Added
-- `next-auth@beta` (v5.x): Modern authentication for Next.js
+- `next-auth@5.0.0-beta.30`: Modern authentication for Next.js
 
 ### File Structure
 ```
