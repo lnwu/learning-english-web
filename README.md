@@ -34,7 +34,37 @@ Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (version 18.17 or higher)
 - npm (comes with Node.js)
 
-## Installation
+## Quick Start: Automated Setup
+
+**The fastest way to get started - fully automated, zero manual steps.**
+
+### For Production Deployment (Recommended)
+
+Run one command to set up everything automatically:
+
+```bash
+./scripts/automated-setup.sh
+```
+
+This script will:
+- ✅ Create encrypted secrets file from your credentials
+- ✅ Set up 6 GitHub Secrets automatically
+- ✅ Commit and push changes
+- ✅ Trigger automatic deployment
+- ✅ **Takes 2-3 minutes**
+
+**What you need:**
+- GCP service account key (download from [GCP Console](https://console.cloud.google.com/iam-admin/serviceaccounts))
+- Vercel API token (get from [Vercel](https://vercel.com/account/tokens))
+- Your application credentials (OAuth, Firebase - see [Automated Setup Guide](docs/AUTOMATED_SETUP.md))
+
+**Deployment is automatic** - no manual Vercel configuration needed!
+
+See [**Automated Setup Guide**](docs/AUTOMATED_SETUP.md) for complete instructions.
+
+---
+
+## Installation (Local Development)
 
 1. Clone the repository:
 ```bash
@@ -83,20 +113,61 @@ npm start
 
 ## Deployment
 
-### Automated Deployment with Terraform
+### Fully Automated Setup (Recommended)
 
-This project uses Infrastructure as Code (IaC) for automated deployment to Vercel with encrypted secrets stored in Google Cloud Secret Manager.
+**Zero manual steps. 2-3 minutes. Downtime acceptable.**
 
-#### Quick Start
+```bash
+./scripts/automated-setup.sh
+```
 
-1. **Run the setup script** (recommended):
-   ```bash
-   ./scripts/setup-infrastructure.sh
-   ```
+This automated script will:
+- ✅ Create encrypted secrets file from your credentials
+- ✅ Set up 6 GitHub Secrets automatically
+- ✅ Commit and push to your current branch
+- ✅ Trigger automatic deployment to Vercel
+- ✅ **No manual Vercel configuration needed!**
 
-2. **Or follow the manual setup**:
-   - See [Infrastructure Setup Guide](docs/INFRASTRUCTURE_SETUP.md) for complete instructions
-   - See [GitHub Secrets Reference](docs/GITHUB_SECRETS.md) for required secrets
+**See:** [**Automated Setup Guide**](docs/AUTOMATED_SETUP.md) for complete instructions.
+
+---
+
+### Infrastructure as Code
+
+This project uses Infrastructure as Code (IaC) with Terraform for deployment automation and encrypted secrets management.
+
+#### Features
+
+- ✅ **6 GitHub Secrets** (down from 14) - only provider credentials + encryption key
+- ✅ **Encrypted secrets** stored in repository (AES-256-CBC)
+- ✅ **Automatic deployment** on push to master or any branch (preview)
+- ✅ **Version controlled infrastructure** with Terraform
+- ✅ **No manual Vercel configuration** - all automated
+
+#### Setup Options
+
+**1. Automated Script (Fastest)**
+```bash
+./scripts/automated-setup.sh
+```
+- Zero manual steps
+- 2-3 minutes
+- See [Automated Setup Guide](docs/AUTOMATED_SETUP.md)
+
+**2. OpenSSL Encryption (Simple)**
+- Manual but straightforward
+- 5 minutes
+- See [Recommended Setup Guide](docs/RECOMMENDED_SETUP.md)
+
+**3. SOPS + GCP KMS (Advanced)**
+- Enterprise-grade encryption
+- 30 minutes
+- See [SOPS Guide](docs/SOPS_SECRETS_MANAGEMENT.md)
+
+**4. Manual Setup (Detailed)**
+- Step-by-step guide
+- All secrets in GitHub
+- See [Infrastructure Setup Guide](docs/INFRASTRUCTURE_SETUP.md)
 
 #### Deployment Workflow
 
