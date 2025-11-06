@@ -150,6 +150,19 @@ Result:
 - **View All Words**: See your complete vocabulary list
 - **Delete Words**: Remove words you no longer want to practice
 - **Persistent Storage**: Words are saved in browser localStorage
+- **Cloud Storage Option**: Optional Firebase Firestore integration for cross-device sync (see [Cloud Storage Guide](docs/GOOGLE_CLOUD_QUICK_REFERENCE.md))
+- **Migration Tool**: Easily migrate existing localStorage data to Firestore (see [Migration Guide](docs/MIGRATION_GUIDE.md))
+
+## Cloud Storage (Optional)
+
+Want to sync your words across devices? Check out our Google Cloud storage guides:
+
+- **[Quick Reference](docs/GOOGLE_CLOUD_QUICK_REFERENCE.md)** - Compare all options (2 min read)
+- **[Firebase Firestore Guide](docs/FIREBASE_IMPLEMENTATION_GUIDE.md)** - Step-by-step setup (Recommended, ~45 min)
+- **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Move your existing words to the cloud (5 min) ⭐ NEW
+- **[Detailed Options](docs/GOOGLE_CLOUD_STORAGE_OPTIONS.md)** - All Google Cloud solutions
+
+**TL;DR**: Use Firebase Firestore (free, real-time sync, easy setup)
 
 ## API Integration
 
@@ -276,6 +289,17 @@ rm -rf node_modules package-lock.json
 npm install
 npm run build
 ```
+
+## Documentation
+
+Additional documentation available in the `docs/` folder:
+
+- **[Google Cloud Quick Reference](docs/GOOGLE_CLOUD_QUICK_REFERENCE.md)** - Compare storage options
+- **[Firebase Implementation Guide](docs/FIREBASE_IMPLEMENTATION_GUIDE.md)** - Step-by-step Firestore setup
+- **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate localStorage data to Firestore ⭐ NEW
+- **[Google Cloud Storage Options](docs/GOOGLE_CLOUD_STORAGE_OPTIONS.md)** - Detailed comparison of all options
+- **[Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)** - Authentication setup guide
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical architecture documentation
 
 ## Contributing
 
