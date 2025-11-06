@@ -24,8 +24,9 @@ Create `secrets.yaml`:
 auth:
   secret: Wh3AHVpDqpAM2Ee7WXl3qx7xLBUvzeIf5EmbjhJfYng=
   google:
-    client_id: [REDACTED]
-    client_secret: [REDACTED]
+    # Replace with your actual values from the environment variables you provided
+    client_id: YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE
+    client_secret: YOUR_GOOGLE_OAUTH_CLIENT_SECRET_HERE
 
 firebase:
   api_key: AIzaSyBLrP7aHXPxPgVywtRje2IA4vgW9YJABIs
