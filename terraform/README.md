@@ -95,6 +95,61 @@ This Terraform setup provisions and manages:
    terraform apply
    ```
 
+### Production State Management (Recommended)
+
+For production environments, it's strongly recommended to use remote state storage:
+
+1. **Create a GCS bucket for Terraform state**
+   ```bash
+   # Create bucket
+   gsutil mb -p YOUR_PROJECT_ID -l us-central1 gs://YOUR_PROJECT_ID-terraform-state
+   
+   # Enable versioning
+   gsutil versioning set on gs://YOUR_PROJECT_ID-terraform-state
+   
+   # Set lifecycle policy to keep versions
+   cat > lifecycle.json << EOF
+   {
+     "lifecycle": {
+       "rule": [
+         {
+           "action": {"type": "Delete"},
+           "condition": {
+             "numNewerVersions": 10,
+             "isLive": false
+           }
+         }
+       ]
+     }
+   }
+   EOF
+   gsutil lifecycle set lifecycle.json gs://YOUR_PROJECT_ID-terraform-state
+   ```
+
+2. **Configure backend in `main.tf`**
+   ```hcl
+   terraform {
+     backend "gcs" {
+       bucket = "YOUR_PROJECT_ID-terraform-state"
+       prefix = "terraform/state"
+     }
+   }
+   ```
+
+3. **Migrate existing state (if you already ran terraform apply)**
+   ```bash
+   terraform init -migrate-state
+   ```
+
+**Benefits of remote state:**
+- ✅ State file is encrypted at rest
+- ✅ State locking prevents concurrent modifications
+- ✅ Versioning allows rollback
+- ✅ Shared across team members
+- ✅ Automatically backed up
+
+**⚠️ Warning:** Local state files contain sensitive information (secrets, IDs) and should never be committed to version control.
+
 ## 🔑 Required Credentials
 
 ### Google Cloud

@@ -54,11 +54,16 @@ resource "vercel_project_environment_variable" "env_vars" {
 
 # Output project information
 output "project_url" {
-  description = "Vercel project URL"
+  description = "Vercel project URL (may differ if custom domain is configured)"
   value       = "https://${var.project_name}.vercel.app"
 }
 
 output "project_id" {
   description = "Vercel project ID"
   value       = var.project_id
+}
+
+output "deployment_note" {
+  description = "Note about deployment URLs"
+  value       = "The project URL shown is the default Vercel domain. If a custom domain is configured, use the Vercel dashboard to view the actual deployment URL."
 }

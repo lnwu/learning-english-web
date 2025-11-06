@@ -35,7 +35,7 @@ output "next_steps" {
     1. Set up GitHub Secrets in your repository:
        - GCP_PROJECT_ID: ${var.gcp_project_id}
        - GCP_SERVICE_ACCOUNT_KEY: (Download JSON key for ${google_service_account.github_actions.email})
-       - VERCEL_TOKEN: ${var.vercel_token}
+       - VERCEL_TOKEN: (Use your Vercel API token)
        - VERCEL_ORG_ID: ${var.vercel_org_id}
        - VERCEL_PROJECT_ID: ${var.vercel_project_id}
     
@@ -45,4 +45,5 @@ output "next_steps" {
     
     For detailed instructions, see terraform/README.md
   EOT
+  sensitive = false
 }

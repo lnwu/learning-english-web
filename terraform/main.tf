@@ -16,11 +16,21 @@ terraform {
   }
 
   # Backend configuration for state management
-  # Uncomment and configure for production use
+  # For production, uncomment and configure remote state storage in GCS:
+  # 
   # backend "gcs" {
   #   bucket = "your-terraform-state-bucket"
   #   prefix = "terraform/state"
   # }
+  # 
+  # To set up the backend:
+  # 1. Create a GCS bucket: gsutil mb gs://your-terraform-state-bucket
+  # 2. Enable versioning: gsutil versioning set on gs://your-terraform-state-bucket
+  # 3. Uncomment the backend config above
+  # 4. Run: terraform init -migrate-state
+  #
+  # WARNING: Local state files contain sensitive information and are not
+  # suitable for production use or team collaboration.
 }
 
 # Google Cloud Provider

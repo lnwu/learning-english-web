@@ -45,6 +45,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
+        id: plan
         working-directory: ./terraform
         env:
           TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
@@ -61,7 +62,35 @@ jobs:
           TF_VAR_firebase_messaging_sender_id: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
           TF_VAR_firebase_app_id: ${{ secrets.FIREBASE_APP_ID }}
           TF_VAR_firebase_measurement_id: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
-        run: terraform plan -no-color
+        run: |
+          terraform plan -no-color -out=tfplan
+          terraform show -no-color tfplan > plan_output.txt
+
+      - name: Comment PR with Terraform Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('./terraform/plan_output.txt', 'utf8');
+            const output = `#### Terraform Plan 📝
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${plan}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
 
   deploy-production:
     name: Deploy to Production
