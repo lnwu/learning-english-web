@@ -116,11 +116,21 @@ jobs:
 
       - name: Decrypt secrets
         run: |
-          # Decrypt secrets.enc.yaml using SOPS with GCP KMS
+          # Method 1: Try SOPS decryption (if secrets.enc.yaml exists and SOPS is preferred)
           if [ -f secrets.enc.yaml ]; then
+            echo "Using SOPS encryption method..."
             sops --decrypt secrets.enc.yaml > secrets.yaml
-            
-            # Export secrets as environment variables for build
+          # Method 2: Try OpenSSL decryption (if secrets.enc exists - simpler method)
+          elif [ -f secrets.enc ] && [ -n "${{ secrets.OPENSSL_SECRET_KEY }}" ]; then
+            echo "Using OpenSSL encryption method..."
+            openssl enc -aes-256-cbc -d -a -pbkdf2 -in secrets.enc -pass pass:${{ secrets.OPENSSL_SECRET_KEY }} > secrets.yaml
+          else
+            echo "Warning: No encrypted secrets file found. Using GitHub Secrets directly."
+            exit 0
+          fi
+          
+          # Export secrets as environment variables for build
+          if [ -f secrets.yaml ]; then
             export AUTH_SECRET=$(yq eval '.auth.secret' secrets.yaml)
             export AUTH_GOOGLE_ID=$(yq eval '.auth.google.client_id' secrets.yaml)
             export AUTH_GOOGLE_SECRET=$(yq eval '.auth.google.client_secret' secrets.yaml)
@@ -146,8 +156,6 @@ jobs:
             
             # Clean up decrypted file
             rm secrets.yaml
-          else
-            echo "Warning: secrets.enc.yaml not found. Using environment variables from GitHub Secrets."
           fi
 
       - name: Install yq (YAML processor)
@@ -185,10 +193,17 @@ jobs:
       - name: Update Vercel Environment Variables
         run: |
           # Update Vercel environment variables from decrypted secrets
+          # Try SOPS file first, then OpenSSL file
+          SECRETS_FILE=""
           if [ -f secrets.enc.yaml ]; then
-            # Decrypt again for Vercel update (previous decrypt was cleaned up)
             sops --decrypt secrets.enc.yaml > secrets.yaml
-            
+            SECRETS_FILE="secrets.yaml"
+          elif [ -f secrets.enc ] && [ -n "${{ secrets.OPENSSL_SECRET_KEY }}" ]; then
+            openssl enc -aes-256-cbc -d -a -pbkdf2 -in secrets.enc -pass pass:${{ secrets.OPENSSL_SECRET_KEY }} > secrets.yaml
+            SECRETS_FILE="secrets.yaml"
+          fi
+          
+          if [ -n "$SECRETS_FILE" ] && [ -f "$SECRETS_FILE" ]; then
             # Update Vercel environment variables
             vercel env rm AUTH_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
             echo "$AUTH_SECRET" | vercel env add AUTH_SECRET production --token=${{ secrets.VERCEL_TOKEN }}
@@ -199,7 +214,7 @@ jobs:
             vercel env rm AUTH_GOOGLE_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
             echo "$AUTH_GOOGLE_SECRET" | vercel env add AUTH_GOOGLE_SECRET production --token=${{ secrets.VERCEL_TOKEN }}
             
-            # Firebase variables (public, but still managed via SOPS)
+            # Firebase variables (public, but still managed via encryption)
             vercel env rm NEXT_PUBLIC_FIREBASE_API_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} || true
             echo "$NEXT_PUBLIC_FIREBASE_API_KEY" | vercel env add NEXT_PUBLIC_FIREBASE_API_KEY production --token=${{ secrets.VERCEL_TOKEN }}
             
@@ -223,6 +238,8 @@ jobs:
             
             # Clean up
             rm secrets.yaml
+          else
+            echo "No encrypted secrets file found. Skipping Vercel env update."
           fi
 
       - name: Pull Vercel Environment Information
