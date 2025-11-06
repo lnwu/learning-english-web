@@ -184,8 +184,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Users can only read/write their own data
+    // Using email as document ID, so we check against the email claim
     match /users/{userId}/words/{wordId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.token.email == userId;
     }
     
     // Deny all other access
@@ -204,7 +205,7 @@ Create a new file: `src/hooks/useFirestoreWords.ts`
 
 ```typescript
 import { useEffect, useState } from "react";
-import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useSession } from "next-auth/react";
 import { makeAutoObservable } from "mobx";
@@ -315,9 +316,10 @@ export const useFirestoreWords = () => {
     const q = query(wordsCollection, where("word", "==", word));
     const querySnapshot = await getDocs(q);
     
-    querySnapshot.forEach(async (document) => {
-      await deleteDoc(doc(db, "users", userId, "words", document.id));
-    });
+    const deletePromises = querySnapshot.docs.map((document) =>
+      deleteDoc(doc(db, "users", userId, "words", document.id))
+    );
+    await Promise.all(deletePromises);
   };
 
   const removeAllWords = async () => {

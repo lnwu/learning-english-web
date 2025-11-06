@@ -46,13 +46,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Allow users to read and write only their own data
+    // Using email as document ID, so we check against the email claim
     match /users/{userId}/words/{wordId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.token.email == userId;
     }
     
     // Allow users to access their user document
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.token.email == userId;
     }
     
     // Deny all other access
@@ -313,9 +314,10 @@ export const useFirestoreWords = () => {
       const q = query(wordsCollection, where("word", "==", word));
       const querySnapshot = await getDocs(q);
 
-      querySnapshot.forEach(async (document) => {
-        await deleteDoc(doc(db, "users", userId, "words", document.id));
-      });
+      const deletePromises = querySnapshot.docs.map((document) =>
+        deleteDoc(doc(db, "users", userId, "words", document.id))
+      );
+      await Promise.all(deletePromises);
     } catch (err) {
       console.error("Failed to delete word:", err);
       throw new Error("Failed to delete word from cloud");
