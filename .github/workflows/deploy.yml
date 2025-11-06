@@ -1,0 +1,144 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: ./terraform
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        working-directory: ./terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        env:
+          TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          TF_VAR_vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          TF_VAR_vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+          TF_VAR_auth_secret: ${{ secrets.AUTH_SECRET }}
+          TF_VAR_auth_google_id: ${{ secrets.AUTH_GOOGLE_ID }}
+          TF_VAR_auth_google_secret: ${{ secrets.AUTH_GOOGLE_SECRET }}
+          TF_VAR_firebase_project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+          TF_VAR_firebase_api_key: ${{ secrets.FIREBASE_API_KEY }}
+          TF_VAR_firebase_auth_domain: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          TF_VAR_firebase_storage_bucket: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          TF_VAR_firebase_messaging_sender_id: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          TF_VAR_firebase_app_id: ${{ secrets.FIREBASE_APP_ID }}
+          TF_VAR_firebase_measurement_id: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+        run: terraform plan -no-color
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Build application
+        run: npm run build
+        env:
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
+          AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        env:
+          TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          TF_VAR_vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          TF_VAR_vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+          TF_VAR_auth_secret: ${{ secrets.AUTH_SECRET }}
+          TF_VAR_auth_google_id: ${{ secrets.AUTH_GOOGLE_ID }}
+          TF_VAR_auth_google_secret: ${{ secrets.AUTH_GOOGLE_SECRET }}
+          TF_VAR_firebase_project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+          TF_VAR_firebase_api_key: ${{ secrets.FIREBASE_API_KEY }}
+          TF_VAR_firebase_auth_domain: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          TF_VAR_firebase_storage_bucket: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          TF_VAR_firebase_messaging_sender_id: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          TF_VAR_firebase_app_id: ${{ secrets.FIREBASE_APP_ID }}
+          TF_VAR_firebase_measurement_id: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+        run: terraform apply -auto-approve
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

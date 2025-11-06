@@ -12,6 +12,7 @@ A modern web application designed to help users learn English vocabulary through
 - **Persistent Storage**: All words are saved locally in your browser
 - **Word Management**: View, add, and delete words from your collection
 - **Smart Translations**: Combines English definitions with Chinese translations
+- **Infrastructure as Code**: Terraform-based deployment automation with encrypted secrets
 
 ## Tech Stack
 
@@ -21,6 +22,9 @@ A modern web application designed to help users learn English vocabulary through
 - **State Management**: [MobX](https://mobx.js.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components**: [Radix UI](https://www.radix-ui.com/)
+- **Infrastructure**: [Terraform](https://www.terraform.io/) for IaC
+- **Deployment**: [Vercel](https://vercel.com/) with automated CI/CD
+- **Cloud Platform**: [Google Cloud](https://cloud.google.com/) (Secret Manager, Firebase)
 - **Package Manager**: npm
 - **Runtime**: Node.js
 
@@ -76,6 +80,41 @@ Start the production server:
 ```bash
 npm start
 ```
+
+## Deployment
+
+### Automated Deployment with Terraform
+
+This project uses Infrastructure as Code (IaC) for automated deployment to Vercel with encrypted secrets stored in Google Cloud Secret Manager.
+
+#### Quick Start
+
+1. **Run the setup script** (recommended):
+   ```bash
+   ./scripts/setup-infrastructure.sh
+   ```
+
+2. **Or follow the manual setup**:
+   - See [Infrastructure Setup Guide](docs/INFRASTRUCTURE_SETUP.md) for complete instructions
+   - See [GitHub Secrets Reference](docs/GITHUB_SECRETS.md) for required secrets
+
+#### Deployment Workflow
+
+Once configured, deployment is automatic:
+
+- **Pull Requests**: Terraform plan validation
+- **Merge to Master**: Automatic deployment to Vercel production
+
+#### What Gets Deployed
+
+- **Secrets**: Encrypted in Google Cloud Secret Manager
+- **Environment Variables**: Automatically configured in Vercel
+- **Application**: Built and deployed to Vercel
+- **Infrastructure**: All managed via Terraform
+
+For detailed instructions, see:
+- [Infrastructure Setup Guide](docs/INFRASTRUCTURE_SETUP.md)
+- [Terraform README](terraform/README.md)
 
 ### Linting
 
@@ -294,12 +333,20 @@ npm run build
 
 Additional documentation available in the `docs/` folder:
 
+### Deployment & Infrastructure
+- **[Infrastructure Setup Guide](docs/INFRASTRUCTURE_SETUP.md)** - Complete Terraform IaC setup ⭐ NEW
+- **[GitHub Secrets Reference](docs/GITHUB_SECRETS.md)** - Quick reference for CI/CD secrets ⭐ NEW
+
+### Cloud Storage & Authentication
 - **[Google Cloud Quick Reference](docs/GOOGLE_CLOUD_QUICK_REFERENCE.md)** - Compare storage options
 - **[Firebase Implementation Guide](docs/FIREBASE_IMPLEMENTATION_GUIDE.md)** - Step-by-step Firestore setup
-- **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate localStorage data to Firestore ⭐ NEW
+- **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate localStorage data to Firestore
 - **[Google Cloud Storage Options](docs/GOOGLE_CLOUD_STORAGE_OPTIONS.md)** - Detailed comparison of all options
 - **[Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)** - Authentication setup guide
+
+### Technical Documentation
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical architecture documentation
+- **[Terraform README](terraform/README.md)** - Detailed Terraform documentation
 
 ## Contributing
 
