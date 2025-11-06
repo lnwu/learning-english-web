@@ -22,7 +22,8 @@ const Home = observer(() => {
     if (!loading && words.allWords.size > 0 && randomWords.length === 0) {
       setRandomWords(words.getRandomWords());
     }
-  }, [loading, words.allWords.size, randomWords.length, words]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, words.allWords.size, randomWords.length]);
 
   useEffect(() => {
     if (shouldFocusFirst && randomWords.length > 0) {
@@ -44,8 +45,9 @@ const Home = observer(() => {
   };
 
   const isCorrect = () => {
+    // Check if all currently displayed words have been filled in correctly
     return (
-      words.userInputs.size === randomWords.length &&
+      randomWords.length > 0 &&
       randomWords.every(([word]) => words.userInputs.get(word) === word)
     );
   };
