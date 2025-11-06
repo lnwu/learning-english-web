@@ -89,13 +89,24 @@ gh secret set VERCEL_PROJECT_ID --body "YOUR_VERCEL_PROJECT_ID"
 # Commit the encrypted file (safe to commit!)
 git add secrets.enc
 git commit -m "Add encrypted secrets"
-git push origin master
+
+# Push to your current branch for testing
+git push origin YOUR_BRANCH_NAME
+
+# Or push to master for production deployment
+# git push origin master
 
 # GitHub Actions will automatically:
 # 1. Decrypt secrets.enc
 # 2. Use the values to build and deploy
 # 3. Your app goes live! 🚀
 ```
+
+**Testing in a branch first? Good idea!**
+- Push to your feature branch (e.g., `git push origin copilot/setup-infrastructure-as-code`)
+- GitHub Actions will run on your branch
+- Review the workflow results
+- Merge to master when ready
 
 ## 🔄 Updating Secrets Later
 
