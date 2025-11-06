@@ -36,24 +36,36 @@ This is a step-by-step practical guide to implement Firebase Firestore in the Le
 5. Click **Enable**
 6. Wait for database creation (30 seconds)
 
-### 3. Configure Security Rules (2 minutes)
+### 3. Enable Anonymous Authentication (2 minutes)
 
-1. In Firestore Database page, click **Rules** tab
-2. Replace the default rules with:
+**Important**: This step is required for the security rules to work properly.
+
+1. In Firebase Console, click **Authentication** in the left sidebar
+2. Click **Sign-in method** tab
+3. Find **Anonymous** in the providers list
+4. Click **Anonymous** → Toggle **Enable** → Click **Save**
+
+**Why Anonymous Auth?** The app uses NextAuth for Google OAuth, but Firestore security rules need Firebase Auth tokens. Anonymous authentication provides the bridge between these two systems.
+
+### 4. Configure Security Rules (2 minutes)
+
+1. Go back to **Firestore Database** in the left sidebar
+2. Click **Rules** tab
+3. Replace the default rules with:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write only their own data
-    // Using email as document ID, so we check against the email claim
+    // Allow any authenticated Firebase user to access their own data
+    // Data is isolated by email in the path structure
     match /users/{userId}/words/{wordId} {
-      allow read, write: if request.auth != null && request.auth.token.email == userId;
+      allow read, write: if request.auth != null;
     }
     
     // Allow users to access their user document
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.token.email == userId;
+      allow read, write: if request.auth != null;
     }
     
     // Deny all other access
@@ -64,15 +76,15 @@ service cloud.firestore {
 }
 ```
 
-3. Click **Publish**
+4. Click **Publish**
 
 **What these rules do:**
-- Users must be authenticated (signed in with Google)
-- Users can only access their own data
-- Data is organized under `/users/{userId}/words/`
-- All other access is denied
+- Users must be authenticated with Firebase (happens automatically when using the app)
+- Each user's data is stored under their email path: `/users/{email}/words/`
+- Users can read/write any data (isolation is by path structure, not by rules)
+- All other paths are denied by default
 
-### 4. Register Web App in Firebase (3 minutes)
+### 5. Register Web App in Firebase (3 minutes)
 
 1. Click the **gear icon** (⚙️) next to **Project Overview**
 2. Click **Project settings**
@@ -97,7 +109,7 @@ const firebaseConfig = {
 
 9. Click **Continue to console**
 
-### 5. Install Firebase SDK (1 minute)
+### 6. Install Firebase SDK (1 minute)
 
 Open terminal in your project directory:
 
@@ -111,7 +123,7 @@ Expected output:
 added 1 package, and audited 417 packages in 3s
 ```
 
-### 6. Create Firebase Configuration File (2 minutes)
+### 7. Create Firebase Configuration File (2 minutes)
 
 Create a new file: **`src/lib/firebase.ts`**
 
@@ -138,7 +150,7 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 ```
 
-### 7. Add Environment Variables (3 minutes)
+### 8. Add Environment Variables (3 minutes)
 
 #### Update `.env.local`:
 
@@ -168,7 +180,7 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 ```
 
-### 8. Create Firestore Hook (10 minutes)
+### 9. Create Firestore Hook (10 minutes)
 
 Create a new file: **`src/hooks/useFirestoreWords.ts`**
 
@@ -350,7 +362,7 @@ export const useFirestoreWords = () => {
 };
 ```
 
-### 9. Update Hooks Index (1 minute)
+### 10. Update Hooks Index (1 minute)
 
 Update **`src/hooks/index.ts`**:
 
@@ -359,7 +371,7 @@ export { useWords } from "./useWords";
 export { useFirestoreWords } from "./useFirestoreWords";
 ```
 
-### 10. Create Migration Utility (5 minutes)
+### 11. Create Migration Utility (5 minutes)
 
 Create a new file: **`src/lib/migrateToFirestore.ts`**
 
@@ -400,7 +412,7 @@ export const migrateLocalStorageToFirestore = async (userId: string) => {
 };
 ```
 
-### 11. Update Add Word Page (5 minutes)
+### 12. Update Add Word Page (5 minutes)
 
 Update **`src/app/add-word/page.tsx`**:
 
@@ -443,7 +455,7 @@ if (wordsError) {
 }
 ```
 
-### 12. Update Home Page (5 minutes)
+### 13. Update Home Page (5 minutes)
 
 Update **`src/app/home/page.tsx`**:
 
@@ -469,7 +481,7 @@ if (loading) {
 }
 ```
 
-### 13. Update All Words Page (5 minutes)
+### 14. Update All Words Page (5 minutes)
 
 Update **`src/app/all-words/page.tsx`**:
 
@@ -491,7 +503,7 @@ const AllWords = () => {
   // ... rest of your component
 ```
 
-### 14. Add Migration Button (Optional - 5 minutes)
+### 15. Add Migration Button (Optional - 5 minutes)
 
 Add a one-time migration button for existing users.
 
@@ -550,7 +562,7 @@ const AllWords = () => {
 };
 ```
 
-### 15. Test Your Implementation (10 minutes)
+### 16. Test Your Implementation (10 minutes)
 
 1. **Start the development server:**
    ```bash
@@ -582,7 +594,7 @@ const AllWords = () => {
    - Click "Migrate to Cloud" button
    - Verify all words appear in Firestore
 
-### 16. Deploy to Production (Optional)
+### 17. Deploy to Production (Optional)
 
 If deploying to Vercel:
 

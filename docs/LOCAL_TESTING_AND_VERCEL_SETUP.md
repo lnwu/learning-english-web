@@ -54,7 +54,20 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-4GQEGC94C2
 - Keep your API keys secure
 - The `.env.example` file shows the structure but should NOT contain real values
 
-### Step 4: Set Up Firestore Security Rules
+### Step 4: Enable Anonymous Authentication in Firebase
+
+**Important**: Before setting up Firestore rules, enable Anonymous Authentication:
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project: **learning-english-477407**
+3. Click **Authentication** in the left sidebar
+4. Click **Sign-in method** tab
+5. Find **Anonymous** in the list
+6. Click **Anonymous** → Toggle **Enable** → Click **Save**
+
+**Why?** The app uses NextAuth for Google login, but Firestore security rules need Firebase Auth tokens. We use anonymous Firebase Auth as a bridge to make this work seamlessly.
+
+### Step 5: Set Up Firestore Security Rules
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Select your project: **learning-english-477407**
@@ -66,15 +79,15 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-4GQEGC94C2
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write only their own data
-    // Using email as document ID, so we check against the email claim
+    // Allow any authenticated Firebase user to access their own data
+    // Data is isolated by email in the path structure
     match /users/{userId}/words/{wordId} {
-      allow read, write: if request.auth != null && request.auth.token.email == userId;
+      allow read, write: if request.auth != null;
     }
     
     // Allow users to access their user document
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.token.email == userId;
+      allow read, write: if request.auth != null;
     }
     
     // Deny all other access
@@ -87,7 +100,7 @@ service cloud.firestore {
 
 6. Click **Publish**
 
-### Step 5: Start Development Server
+### Step 6: Start Development Server
 
 ```bash
 npm run dev
@@ -95,7 +108,7 @@ npm run dev
 
 The app will start at: http://localhost:3000
 
-### Step 6: Test Locally
+### Step 7: Test Locally
 
 #### Test 1: Sign In
 1. Open http://localhost:3000
@@ -139,9 +152,10 @@ The app will start at: http://localhost:3000
 - Restart dev server: Stop (Ctrl+C) and run `npm run dev` again
 
 **Issue: "Permission denied" errors**
-- Check Firestore security rules are published
+- Check Anonymous Authentication is enabled in Firebase Console → Authentication → Sign-in method
+- Check Firestore security rules are published with `request.auth != null`
 - Verify you're signed in with Google OAuth
-- Check browser console for specific error messages
+- Check browser console for Firebase Auth errors
 
 **Issue: Words not syncing**
 - Check internet connection

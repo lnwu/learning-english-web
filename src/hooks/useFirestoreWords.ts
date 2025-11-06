@@ -11,7 +11,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth, ensureFirebaseAuth } from "@/lib/firebase";
 import { useSession } from "next-auth/react";
 import { makeAutoObservable } from "mobx";
 
@@ -75,35 +75,48 @@ export const useFirestoreWords = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!session?.user?.email) {
-      setLoading(false);
-      return;
-    }
-
-    const userId = session.user.email;
-    const wordsCollection = collection(db, "users", userId, "words");
-
-    // Real-time listener for automatic sync
-    const unsubscribe = onSnapshot(
-      wordsCollection,
-      (snapshot) => {
-        const wordsData: [string, string][] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          wordsData.push([data.word, data.translation]);
-        });
-        words.setWords(wordsData);
+    const setupFirestore = async () => {
+      if (!session?.user?.email) {
         setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error("Firestore error:", err);
-        setError("Failed to load words from cloud");
+        return;
+      }
+
+      try {
+        // Ensure Firebase Auth is signed in
+        await ensureFirebaseAuth(session.user.email);
+
+        const userId = session.user.email;
+        const wordsCollection = collection(db, "users", userId, "words");
+
+        // Real-time listener for automatic sync
+        const unsubscribe = onSnapshot(
+          wordsCollection,
+          (snapshot) => {
+            const wordsData: [string, string][] = [];
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              wordsData.push([data.word, data.translation]);
+            });
+            words.setWords(wordsData);
+            setLoading(false);
+            setError(null);
+          },
+          (err) => {
+            console.error("Firestore error:", err);
+            setError("Failed to load words from cloud");
+            setLoading(false);
+          }
+        );
+
+        return unsubscribe;
+      } catch (err) {
+        console.error("Firebase Auth error:", err);
+        setError("Failed to authenticate with Firebase");
         setLoading(false);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    setupFirestore();
   }, [session?.user?.email]);
 
   const addWord = async (word: string, translation: string) => {
@@ -111,10 +124,13 @@ export const useFirestoreWords = () => {
       throw new Error("User not authenticated");
     }
 
-    const userId = session.user.email;
-    const wordsCollection = collection(db, "users", userId, "words");
-
     try {
+      // Ensure Firebase Auth is signed in
+      await ensureFirebaseAuth(session.user.email);
+
+      const userId = session.user.email;
+      const wordsCollection = collection(db, "users", userId, "words");
+
       await addDoc(wordsCollection, {
         word,
         translation,
@@ -122,7 +138,7 @@ export const useFirestoreWords = () => {
       });
     } catch (err) {
       console.error("Failed to add word:", err);
-      throw new Error("Failed to add word to cloud");
+      throw new Error(`Failed to add word to cloud: ${err}`);
     }
   };
 
