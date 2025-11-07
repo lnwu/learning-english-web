@@ -1,7 +1,7 @@
 "use client";
 
 import { Input, Button } from "@/components/ui";
-import { useEffect, useState, useRef, useMemo, type FormEvent } from "react";
+import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useFirestoreWords } from "@/hooks";
@@ -44,17 +44,17 @@ const Home = observer(() => {
     setShouldFocusFirst(true);
   };
 
-  const isCorrect = useMemo(() => {
+  const isCorrect = () => {
     // Check if all currently displayed words have been filled in correctly
     return (
       randomWords.length > 0 &&
       randomWords.every(([word]) => words.userInputs.get(word) === word)
     );
-  }, [randomWords, words.userInputs]);
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isCorrect) {
+    if (!isCorrect()) {
       return;
     }
     refreshWords();
@@ -138,7 +138,7 @@ const Home = observer(() => {
           })}
         </ul>
           <div className="flex space-x-2 justify-end">
-            <Button type="submit" disabled={!isCorrect}>
+            <Button type="submit" disabled={!isCorrect()}>
               Refresh
             </Button>
             <Link href="/add-word">
