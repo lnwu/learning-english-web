@@ -34,13 +34,43 @@ Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (version 18.17 or higher)
 - npm (comes with Node.js)
 
-## Quick Start: Automated Setup
+## Quick Start: Fully Automated Terraform Setup ⭐
 
-**The fastest way to get started - fully automated, zero manual steps.**
+**NEW: Zero manual secret management - Terraform generates everything automatically!**
 
-### For Production Deployment (Recommended)
+### Terraform Auto-Generates ALL Secrets
 
-Run one command to set up everything automatically:
+This is the **recommended approach** - no encrypted files, no manual secrets:
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with 6 values (provider credentials only)
+
+terraform init
+terraform apply  # Creates Firebase, OAuth, generates all secrets, sets Vercel env vars
+
+# Add OAuth redirect URIs in GCP Console (one-time, 1 minute)
+# Done! Push to deploy.
+```
+
+**What Terraform auto-generates:**
+- ✅ OAuth Client ID and Secret
+- ✅ Firebase configuration (10 values)
+- ✅ AUTH_SECRET (random)
+- ✅ All Vercel environment variables (set automatically)
+- ✅ Firestore with security rules
+- ✅ Complete infrastructure from code
+
+**Time**: 5 minutes | **Manual secrets**: 0 | **Configuration**: Automatic
+
+See [**Terraform Auto-Secrets Guide**](docs/TERRAFORM_AUTO_SECRETS.md) for complete instructions.
+
+---
+
+### Alternative: Automated Setup Script
+
+For the original approach with encrypted secrets in repository:
 
 ```bash
 ./scripts/automated-setup.sh

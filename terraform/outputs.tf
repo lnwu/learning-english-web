@@ -5,6 +5,18 @@ output "project_id" {
   value       = var.gcp_project_id
 }
 
+output "firebase_config" {
+  description = "Firebase configuration (auto-generated and set in Vercel)"
+  value       = module.firebase.firebase_config
+  sensitive   = false
+}
+
+output "oauth_client_id" {
+  description = "Google OAuth Client ID (auto-generated and set in Vercel)"
+  value       = module.identity_platform.oauth_client_id
+  sensitive   = false
+}
+
 output "github_actions_service_account_email" {
   description = "Email of the GitHub Actions service account"
   value       = google_service_account.github_actions.email
@@ -30,39 +42,53 @@ output "secret_manager_secrets" {
   value       = module.secret_manager.secret_names
 }
 
-output "next_steps" {
-  description = "Next steps after Terraform apply"
+output "vercel_project_url" {
+  description = "Vercel project URL"
+  value       = module.vercel_deployment.project_url
+}
+
+output "setup_complete" {
+  description = "Setup status and next steps"
   value       = <<-EOT
-    ✅ Terraform infrastructure has been successfully created!
+    ✅ Infrastructure Setup Complete - NO MANUAL SECRETS NEEDED!
     
-    SOPS encryption is now set up for managing application secrets.
+    All credentials have been AUTO-GENERATED and configured in Vercel:
     
-    Next steps:
+    ✅ Firebase Project: ${var.gcp_project_id}
+    ✅ Firestore Database: Created with security rules
+    ✅ Google OAuth Client: Auto-created (ID: ${module.identity_platform.oauth_client_id})
+    ✅ Vercel Environment Variables: All 10 secrets set automatically
+    ✅ NextAuth Secret: Auto-generated
     
-    1. Update .sops.yaml with your project ID:
-       sed -i 's/PLACEHOLDER_PROJECT_ID/${var.gcp_project_id}/g' ../.sops.yaml
+    What Terraform Just Did:
+    - Created Firebase project with Firestore database
+    - Deployed firestore.rules for user-scoped data access
+    - Generated OAuth 2.0 client for Google authentication
+    - Generated random AUTH_SECRET for NextAuth
+    - Set ALL 10 environment variables in Vercel automatically
+    - Configured authorized domains: localhost, ${var.vercel_production_domain}
+    - No encrypted files needed, no manual secrets!
     
-    2. Create and encrypt your secrets:
-       cp ../secrets.yaml.example ../secrets.yaml
-       # Edit secrets.yaml with your actual values
-       sops --encrypt ../secrets.yaml > ../secrets.enc.yaml
-       rm ../secrets.yaml
+    Final Step (One-time OAuth Setup):
+    1. Go to: https://console.cloud.google.com/apis/credentials?project=${var.gcp_project_id}
+    2. Click on "Learning English OAuth Client"
+    3. Add Authorized JavaScript origins:
+       - http://localhost:3000
+       - https://${var.vercel_production_domain}
+    4. Add Authorized redirect URIs:
+       - http://localhost:3000/api/auth/callback/google
+       - https://${var.vercel_production_domain}/api/auth/callback/google
+    5. Click Save
     
-    3. Set up minimal GitHub Secrets (only 5 needed):
-       - GCP_PROJECT_ID: ${var.gcp_project_id}
-       - GCP_SERVICE_ACCOUNT_KEY: (Download JSON key for ${google_service_account.github_actions.email})
-       - VERCEL_TOKEN: (Use your Vercel API token)
-       - VERCEL_ORG_ID: ${var.vercel_org_id}
-       - VERCEL_PROJECT_ID: ${var.vercel_project_id}
+    That's it! Your app is ready to deploy:
+    - Push to GitHub master branch
+    - Vercel deploys automatically with all secrets configured
+    - No encrypted secrets file needed
+    - No manual environment variable configuration
     
-    4. Commit and push:
-       git add ../secrets.enc.yaml ../.sops.yaml
-       git commit -m "Add encrypted secrets"
-       git push origin master
+    Production URL: https://${var.vercel_production_domain}
     
-    5. Application secrets are now managed via SOPS in secrets.enc.yaml
-    
-    For detailed instructions, see docs/SOPS_SECRETS_MANAGEMENT.md
+    All secrets are managed by Terraform in the state file (keep it secure!)
   EOT
   sensitive = false
 }
