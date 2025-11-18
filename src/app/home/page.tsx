@@ -1,17 +1,18 @@
 "use client";
 
-import { Input, Button } from "@/components/ui";
+import { Input, Button, FrequencyBar } from "@/components/ui";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useFirestoreWords } from "@/hooks";
 
 const Home = observer(() => {
-  const { words, loading, error } = useFirestoreWords();
+  const { words, updateWordFrequency, loading, error } = useFirestoreWords();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const [randomWords, setRandomWords] = useState<[string, string][]>([]);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const hintRevealedRef = useRef<Set<string>>(new Set()); // Track which hints were revealed
 
   useEffect(() => {
     setIsClient(true);
@@ -40,6 +41,7 @@ const Home = observer(() => {
 
   const refreshWords = () => {
     words.userInputs.clear();
+    hintRevealedRef.current.clear();
     setRandomWords(words.getRandomWords());
     setShouldFocusFirst(true);
   };
@@ -52,12 +54,41 @@ const Home = observer(() => {
     );
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isCorrect()) {
       return;
     }
+
+    // Update frequencies for all correct answers
+    const updatePromises = randomWords.map(([word]) => {
+      const inputValue = words.userInputs.get(word);
+      if (inputValue === word) {
+        // Correct answer: increment frequency
+        return updateWordFrequency(word, 1);
+      }
+      return Promise.resolve();
+    });
+
+    try {
+      await Promise.all(updatePromises);
+    } catch (err) {
+      console.error("Failed to update frequencies:", err);
+    }
+
     refreshWords();
+  };
+
+  const handleHintReveal = async (word: string) => {
+    // Only decrement frequency once per word per session
+    if (!hintRevealedRef.current.has(word)) {
+      hintRevealedRef.current.add(word);
+      try {
+        await updateWordFrequency(word, -1);
+      } catch (err) {
+        console.error("Failed to update frequency on hint reveal:", err);
+      }
+    }
   };
 
   if (loading) {
@@ -109,30 +140,43 @@ const Home = observer(() => {
                 <div className="grow max-w-xs text-right relative">
                   <strong className="whitespace-pre-line">{displayTranslation}</strong>
                 </div>
-                <Input 
-                  className="w-xs" 
-                  type="text" 
-                  id={word} 
-                  ref={(el) => {
-                    if (el) {
-                      inputRefs.current.set(word, el);
-                    }
-                  }}
-                  onChange={(e) => words.setUserInput(word, e.target.value.toLowerCase())} 
-                  value={inputValue} 
-                />
-                <span 
-                  tabIndex={inputValue === word ? -1 : 0} 
-                  title={word}
-                  className={`${inputValue === word ? '' : 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:rounded'} px-1 relative group`}
-                >
-                  {inputValue === word ? "✅" : "❌"}
-                  {inputValue !== word && (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-focus:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                      {word}
-                    </div>
-                  )}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <Input 
+                    className="w-xs" 
+                    type="text" 
+                    id={word} 
+                    ref={(el) => {
+                      if (el) {
+                        inputRefs.current.set(word, el);
+                      }
+                    }}
+                    onChange={(e) => words.setUserInput(word, e.target.value.toLowerCase())} 
+                    value={inputValue} 
+                  />
+                  <span 
+                    tabIndex={inputValue === word ? -1 : 0} 
+                    title={word}
+                    className={`${inputValue === word ? '' : 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:rounded'} px-1 relative group`}
+                    onMouseEnter={() => {
+                      if (inputValue !== word) {
+                        handleHintReveal(word);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (inputValue !== word) {
+                        handleHintReveal(word);
+                      }
+                    }}
+                  >
+                    {inputValue === word ? "✅" : "❌"}
+                    {inputValue !== word && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        {word}
+                      </div>
+                    )}
+                  </span>
+                  <FrequencyBar frequency={words.getFrequency(word)} />
+                </div>
               </li>
             );
           })}
