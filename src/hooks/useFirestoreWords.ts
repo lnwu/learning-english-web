@@ -23,34 +23,49 @@ class Words {
   wordTranslations: Map<string, string> = new Map();
   wordFrequencies: Map<string, number> = new Map();
   wordIds: Map<string, string> = new Map(); // Track Firestore document IDs
+  wordInputTimes: Map<string, number[]> = new Map(); // Track input times (in seconds)
   userInputs: Map<string, string> = new Map();
 
   constructor() {
     makeAutoObservable(this);
   }
 
-  setWords(words: Array<{ word: string; translation: string; frequency?: number; id: string }>) {
+  setWords(words: Array<{ word: string; translation: string; frequency?: number; inputTimes?: number[]; id: string }>) {
     this.wordTranslations = new Map(words.map(w => [w.word, w.translation]));
     this.wordFrequencies = new Map(words.map(w => [w.word, w.frequency ?? 0]));
+    this.wordInputTimes = new Map(words.map(w => [w.word, w.inputTimes ?? []]));
     this.wordIds = new Map(words.map(w => [w.word, w.id]));
   }
 
   addWord(word: string, translation: string, id: string) {
     this.wordTranslations.set(word, translation);
     this.wordFrequencies.set(word, 0);
+    this.wordInputTimes.set(word, []);
     this.wordIds.set(word, id);
   }
 
   deleteWord(word: string) {
     this.wordTranslations.delete(word);
     this.wordFrequencies.delete(word);
+    this.wordInputTimes.delete(word);
     this.wordIds.delete(word);
   }
 
   removeAllWords() {
     this.wordTranslations.clear();
     this.wordFrequencies.clear();
+    this.wordInputTimes.clear();
     this.wordIds.clear();
+  }
+
+  addInputTime(word: string, timeInSeconds: number) {
+    const times = this.wordInputTimes.get(word) ?? [];
+    times.push(timeInSeconds);
+    this.wordInputTimes.set(word, times);
+  }
+
+  getInputTimes(word: string): number[] {
+    return this.wordInputTimes.get(word) ?? [];
   }
 
   updateFrequency(word: string, delta: number) {
@@ -134,6 +149,7 @@ export const useFirestoreWords = () => {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     const setupFirestore = async () => {
@@ -153,13 +169,14 @@ export const useFirestoreWords = () => {
         const unsubscribe = onSnapshot(
           wordsCollection,
           (snapshot) => {
-            const wordsData: Array<{ word: string; translation: string; frequency?: number; id: string }> = [];
+            const wordsData: Array<{ word: string; translation: string; frequency?: number; inputTimes?: number[]; id: string }> = [];
             snapshot.forEach((doc) => {
               const data = doc.data();
               wordsData.push({
                 word: data.word,
                 translation: data.translation,
                 frequency: data.frequency ?? 0,
+                inputTimes: data.inputTimes ?? [],
                 id: doc.id,
               });
             });
@@ -201,6 +218,7 @@ export const useFirestoreWords = () => {
         word,
         translation,
         frequency: 0,
+        inputTimes: [],
         createdAt: new Date(),
       });
     } catch (err) {
@@ -287,5 +305,53 @@ export const useFirestoreWords = () => {
     }
   };
 
-  return { words, addWord, deleteWord, removeAllWords, updateWordFrequency, loading, error };
+  const saveInputTime = async (word: string, timeInSeconds: number) => {
+    if (!session?.user?.email) {
+      console.warn("User not authenticated, saving time to localStorage only");
+      // Save to localStorage even without auth
+      const localKey = `inputTimes_${word}`;
+      const existingTimes = JSON.parse(localStorage.getItem(localKey) || "[]");
+      existingTimes.push(timeInSeconds);
+      localStorage.setItem(localKey, JSON.stringify(existingTimes));
+      return;
+    }
+
+    const wordId = words.getWordId(word);
+    if (!wordId) {
+      console.error("Word ID not found for:", word);
+      return;
+    }
+
+    // Save to localStorage first (fast, non-blocking)
+    const localKey = `inputTimes_${word}`;
+    const existingTimes = JSON.parse(localStorage.getItem(localKey) || "[]");
+    existingTimes.push(timeInSeconds);
+    localStorage.setItem(localKey, JSON.stringify(existingTimes));
+
+    // Update local MobX state immediately
+    words.addInputTime(word, timeInSeconds);
+
+    // Queue background sync to Firestore
+    setSyncing(true);
+    
+    try {
+      await ensureFirebaseAuth(session.user.email);
+      const userId = session.user.email;
+      const wordDocRef = doc(db, "users", userId, "words", wordId);
+
+      await updateDoc(wordDocRef, {
+        inputTimes: words.getInputTimes(word),
+      });
+
+      // Clear from localStorage after successful sync
+      localStorage.removeItem(localKey);
+    } catch (err) {
+      console.error("Failed to sync input time to Firestore:", err);
+      // Keep in localStorage for later retry
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return { words, addWord, deleteWord, removeAllWords, updateWordFrequency, saveInputTime, loading, error, syncing };
 };
