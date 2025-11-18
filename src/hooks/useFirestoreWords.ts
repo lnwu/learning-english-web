@@ -10,6 +10,7 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { db, auth, ensureFirebaseAuth } from "@/lib/firebase";
 import { useSession } from "next-auth/react";
@@ -275,7 +276,6 @@ export const useFirestoreWords = () => {
       words.updateFrequency(word, delta);
 
       // Then update Firestore
-      const { updateDoc } = await import("firebase/firestore");
       await updateDoc(wordDocRef, {
         frequency: words.getFrequency(word),
       });
