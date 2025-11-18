@@ -1,18 +1,19 @@
 "use client";
 
-import { Input, Button, FrequencyBar } from "@/components/ui";
+import { Input, Button, FrequencyBar, SyncIndicator } from "@/components/ui";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useFirestoreWords } from "@/hooks";
 
 const Home = observer(() => {
-  const { words, updateWordFrequency, loading, error } = useFirestoreWords();
+  const { words, updateWordFrequency, saveInputTime, syncing, loading, error } = useFirestoreWords();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const [randomWords, setRandomWords] = useState<[string, string][]>([]);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const hintRevealedRef = useRef<Set<string>>(new Set()); // Track which hints were revealed
+  const timerStartRef = useRef<Map<string, number>>(new Map()); // Track start time for each word
 
   useEffect(() => {
     setIsClient(true);
@@ -42,6 +43,7 @@ const Home = observer(() => {
   const refreshWords = () => {
     words.userInputs.clear();
     hintRevealedRef.current.clear();
+    timerStartRef.current.clear();
     setRandomWords(words.getRandomWords());
     setShouldFocusFirst(true);
   };
@@ -60,12 +62,35 @@ const Home = observer(() => {
       return;
     }
 
-    // Update frequencies for all correct answers
-    const updatePromises = randomWords.map(([word]) => {
+    // Process all correct answers with time-based frequency adjustment
+    const updatePromises = randomWords.map(async ([word]) => {
       const inputValue = words.userInputs.get(word);
       if (inputValue === word) {
-        // Correct answer: increment frequency
-        return updateWordFrequency(word, 1);
+        const startTime = timerStartRef.current.get(word);
+        
+        if (startTime) {
+          // Calculate input time in seconds
+          const endTime = Date.now();
+          const inputTimeSeconds = (endTime - startTime) / 1000;
+          
+          // Save input time to localStorage and sync in background
+          await saveInputTime(word, inputTimeSeconds);
+          
+          // Get average time for this word
+          const averageTime = words.getAverageInputTime(word);
+          
+          if (averageTime !== null) {
+            // Compare with average: faster = decrease (knows well), slower = increase (needs practice)
+            const delta = inputTimeSeconds < averageTime ? -1 : 1;
+            await updateWordFrequency(word, delta);
+          } else {
+            // First time: use neutral frequency increase
+            await updateWordFrequency(word, 1);
+          }
+        } else {
+          // No timer data: just increase frequency
+          await updateWordFrequency(word, 1);
+        }
       }
       return Promise.resolve();
     });
@@ -114,8 +139,10 @@ const Home = observer(() => {
 
   return (
     isClient && (
-      <main>
-        <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
+      <>
+        <SyncIndicator syncing={syncing} />
+        <main>
+          <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
         <ul className="space-y-2">
           {randomWords.map(([word, translation]) => {
             const inputValue = words.userInputs.get(word) || "";
@@ -150,7 +177,16 @@ const Home = observer(() => {
                         inputRefs.current.set(word, el);
                       }
                     }}
-                    onChange={(e) => words.setUserInput(word, e.target.value.toLowerCase())} 
+                    onChange={(e) => {
+                      const value = e.target.value.toLowerCase();
+                      
+                      // Start timer on first character typed
+                      if (value.length === 1 && !timerStartRef.current.has(word)) {
+                        timerStartRef.current.set(word, Date.now());
+                      }
+                      
+                      words.setUserInput(word, value);
+                    }} 
                     value={inputValue} 
                   />
                   <span 
@@ -189,8 +225,9 @@ const Home = observer(() => {
               <Button type="button">Add New Word</Button>
             </Link>
           </div>
-        </form>
-      </main>
+          </form>
+        </main>
+      </>
     )
   );
 });

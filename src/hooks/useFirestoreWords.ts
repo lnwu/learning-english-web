@@ -68,6 +68,21 @@ class Words {
     return this.wordInputTimes.get(word) ?? [];
   }
 
+  getAverageInputTime(word: string): number | null {
+    const times = this.getInputTimes(word);
+    if (times.length === 0) return null;
+    return times.reduce((sum, time) => sum + time, 0) / times.length;
+  }
+
+  getOverallAverageInputTime(): number | null {
+    const allTimes: number[] = [];
+    this.wordInputTimes.forEach((times) => {
+      allTimes.push(...times);
+    });
+    if (allTimes.length === 0) return null;
+    return allTimes.reduce((sum, time) => sum + time, 0) / allTimes.length;
+  }
+
   updateFrequency(word: string, delta: number) {
     const currentFrequency = this.wordFrequencies.get(word) ?? 0;
     const newFrequency = Math.max(Words.MIN_FREQUENCY, currentFrequency + delta);
