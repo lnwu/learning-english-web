@@ -119,12 +119,29 @@ class Words {
       return [];
     }
 
-    // Weighted random selection: lower frequency = higher selection probability
+    // Weighted random selection based on mastery level
+    // Lower mastery = higher selection probability
     const wordsWithWeights = storedWords.map(([word, translation]) => {
       const frequency = this.getFrequency(word);
-      // Words with frequency <= 0 get highest weight
-      // Weight calculation: use inverse of (frequency + offset) to ensure higher weight for lower frequencies
-      const weight = frequency <= 0 ? 100 : Math.max(1, 100 / (frequency + 1));
+      // Calculate mastery level (0-4)
+      const getMasteryLevel = (freq: number): number => {
+        if (freq <= -3) return 0;
+        if (freq <= 0) return 1;
+        if (freq <= 3) return 2;
+        if (freq <= 6) return 3;
+        return 4;
+      };
+      const masteryLevel = getMasteryLevel(frequency);
+      
+      // Weight inversely proportional to mastery level
+      // Level 0 (not mastered): weight 100
+      // Level 1 (beginner): weight 80
+      // Level 2 (learning): weight 50
+      // Level 3 (familiar): weight 20
+      // Level 4 (mastered): weight 5
+      const weightsByLevel = [100, 80, 50, 20, 5];
+      const weight = weightsByLevel[masteryLevel];
+      
       return { word, translation, weight };
     });
 

@@ -111,7 +111,7 @@ const Profile = observer(() => {
                   <div className="text-right">
                     <div className="font-semibold">{avgTime.toFixed(1)}s</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Frequency: {words.getFrequency(word)}
+                      熟悉程度: {words.getFrequency(word)}
                     </div>
                   </div>
                 </div>

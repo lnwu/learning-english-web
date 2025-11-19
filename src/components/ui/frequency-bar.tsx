@@ -6,47 +6,64 @@ interface FrequencyBarProps {
   className?: string;
 }
 
+// Convert frequency to mastery level (0-4, where 4 is highest mastery)
+const getMasteryLevel = (frequency: number): number => {
+  // Map frequency to 5 mastery levels (0-4)
+  // freq <= -3: level 0 (not mastered at all)
+  // freq -2 to 0: level 1 (beginner)
+  // freq 1 to 3: level 2 (learning)
+  // freq 4 to 6: level 3 (familiar)
+  // freq >= 7: level 4 (mastered)
+  if (frequency <= -3) return 0;
+  if (frequency <= 0) return 1;
+  if (frequency <= 3) return 2;
+  if (frequency <= 6) return 3;
+  return 4;
+};
+
 const FrequencyBar = React.forwardRef<HTMLDivElement, FrequencyBarProps>(
   ({ frequency, className }, ref) => {
-    // Calculate color based on frequency
-    // Red (-5 to 0), Yellow (0 to 5), Green (5+)
-    const getColor = (freq: number) => {
-      if (freq <= 0) {
-        // Red shades for negative/zero frequencies
-        const intensity = Math.max(0, (freq + 5) / 5); // 0 at -5, 1 at 0
-        return `rgb(${255}, ${Math.floor(intensity * 100)}, ${Math.floor(intensity * 100)})`;
-      } else if (freq <= 5) {
-        // Yellow to green transition (0-5)
-        const ratio = freq / 5;
-        const red = Math.floor(255 * (1 - ratio));
-        const green = 200;
-        return `rgb(${red}, ${green}, 0)`;
-      } else {
-        // Solid green for high frequencies
-        return "rgb(34, 197, 94)"; // green-500
-      }
-    };
+    const masteryLevel = getMasteryLevel(frequency);
+    
+    // Define colors for each mastery level
+    const levelColors = [
+      "bg-red-500",      // Level 0: Not mastered
+      "bg-orange-500",   // Level 1: Beginner
+      "bg-yellow-500",   // Level 2: Learning
+      "bg-lime-500",     // Level 3: Familiar
+      "bg-green-500",    // Level 4: Mastered
+    ];
 
-    // Calculate height based on frequency (clamped between -5 and 10)
-    const clampedFreq = Math.max(-5, Math.min(10, frequency));
-    const heightPercentage = ((clampedFreq + 5) / 15) * 100; // -5 to 10 = 0% to 100%
+    const levelLabels = [
+      "未掌握",  // Not mastered
+      "初学",    // Beginner
+      "学习中",  // Learning
+      "熟悉",    // Familiar
+      "已掌握",  // Mastered
+    ];
 
     return (
       <div
         ref={ref}
-        className={cn(
-          "relative w-2 h-16 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden",
-          className
-        )}
-        title={`Frequency: ${frequency}`}
+        className={cn("flex flex-col items-center gap-1", className)}
+        title={`熟悉程度: ${levelLabels[masteryLevel]} (${frequency})`}
       >
-        <div
-          className="absolute bottom-0 w-full transition-all duration-300 rounded-full"
-          style={{
-            height: `${heightPercentage}%`,
-            backgroundColor: getColor(frequency),
-          }}
-        />
+        <div className="flex gap-1">
+          {[0, 1, 2, 3, 4].map((level) => (
+            <div
+              key={level}
+              className={cn(
+                "w-4 h-3 rounded-sm transition-all duration-300",
+                level <= masteryLevel
+                  ? levelColors[level]
+                  : "bg-gray-300 dark:bg-gray-600"
+              )}
+            />
+          ))}
+        </div>
+        <span className="text-xs text-gray-600 dark:text-gray-400">
+          {levelLabels[masteryLevel]}
+        </span>
       </div>
     );
   }
@@ -54,4 +71,4 @@ const FrequencyBar = React.forwardRef<HTMLDivElement, FrequencyBarProps>(
 
 FrequencyBar.displayName = "FrequencyBar";
 
-export { FrequencyBar };
+export { FrequencyBar, getMasteryLevel };
