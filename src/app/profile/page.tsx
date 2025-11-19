@@ -89,6 +89,37 @@ const Profile = observer(() => {
           </div>
         </div>
 
+        {/* Average Speed by Word Length */}
+        <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">按单词长度分类的平均输入速度</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            根据单词长度分组的平均输入时间
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { category: 0, label: "短单词 (≤5字母)", color: "blue" },
+              { category: 1, label: "中等单词 (6-10字母)", color: "yellow" },
+              { category: 2, label: "长单词 (>10字母)", color: "red" }
+            ].map(({ category, label, color }) => {
+              const avgTime = words.getAverageTimeByLengthCategory(category);
+              const colorClasses = {
+                blue: "bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300",
+                yellow: "bg-yellow-50 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300",
+                red: "bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-300"
+              };
+              
+              return (
+                <div key={category} className={`p-4 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
+                  <div className="text-2xl font-bold">
+                    {avgTime !== null ? `${avgTime.toFixed(2)}秒` : '暂无数据'}
+                  </div>
+                  <div className="text-sm opacity-80 mt-1">{label}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Word Performance Details */}
         {wordsWithTimes.length > 0 && (
           <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">

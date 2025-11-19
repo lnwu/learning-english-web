@@ -83,6 +83,46 @@ class Words {
     return allTimes.reduce((sum, time) => sum + time, 0) / allTimes.length;
   }
 
+  // Get word length category: 0 (≤5), 1 (6-10), 2 (>10)
+  getWordLengthCategory(word: string): number {
+    const length = word.length;
+    if (length <= 5) return 0;
+    if (length <= 10) return 1;
+    return 2;
+  }
+
+  // Get average input time for words in the same length category
+  getAverageTimeByLengthCategory(category: number): number | null {
+    const categoryTimes: number[] = [];
+    
+    this.wordTranslations.forEach((translation, word) => {
+      if (this.getWordLengthCategory(word) === category) {
+        const times = this.getInputTimes(word);
+        categoryTimes.push(...times);
+      }
+    });
+    
+    if (categoryTimes.length === 0) return null;
+    return categoryTimes.reduce((sum, time) => sum + time, 0) / categoryTimes.length;
+  }
+
+  // Calculate frequency adjustment based on input speed vs category average
+  calculateFrequencyDelta(word: string, inputTimeSeconds: number): number {
+    const category = this.getWordLengthCategory(word);
+    const categoryAverage = this.getAverageTimeByLengthCategory(category);
+    
+    if (categoryAverage === null) {
+      // No data yet for this category, use neutral increase
+      return 1;
+    }
+    
+    // If input time is less than category average, user is faster (more familiar)
+    // Decrease frequency so word appears less often
+    // If input time is greater than or equal to average, user is slower (less familiar)
+    // Increase frequency so word appears more often
+    return inputTimeSeconds < categoryAverage ? -1 : 1;
+  }
+
   updateFrequency(word: string, delta: number) {
     const currentFrequency = this.wordFrequencies.get(word) ?? 0;
     const newFrequency = Math.max(Words.MIN_FREQUENCY, currentFrequency + delta);

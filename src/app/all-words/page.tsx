@@ -110,28 +110,49 @@ const Home = observer(() => {
 
       <ul className="space-y-2">
         {allWords.size > 0 ? (
-          Array.from(allWords.entries()).map(([word, translation], index) => (
-            <li key={word} className="flex items-center space-x-2 p-3 border rounded">
-              <button
-                onClick={async () => {
-                  try {
-                    await deleteWord(word);
-                  } catch (error) {
-                    console.error("Delete failed:", error);
-                    alert("Failed to delete word. Please try again.");
-                  }
-                }}
-                title="Delete"
-                className="text-red-600 hover:text-red-800"
-              >
-                🗑️
-              </button>
-              <div className="flex-1">
-                <strong className="block">{word}</strong>
-                <span className="text-sm text-gray-600">{translation}</span>
-              </div>
-            </li>
-          ))
+          Array.from(allWords.entries()).map(([word, translation]) => {
+            const avgTime = words.getAverageInputTime(word);
+            const frequency = words.getFrequency(word);
+            const practiceCount = words.getInputTimes(word).length;
+            
+            return (
+              <li key={word} className="flex items-center space-x-3 p-3 border rounded">
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteWord(word);
+                    } catch (error) {
+                      console.error("Delete failed:", error);
+                      alert("Failed to delete word. Please try again.");
+                    }
+                  }}
+                  title="Delete"
+                  className="text-red-600 hover:text-red-800"
+                >
+                  🗑️
+                </button>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <strong className="text-lg">{word}</strong>
+                    {practiceCount > 0 && (
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                        练习 {practiceCount} 次
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 block mb-2">{translation}</span>
+                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    <span>
+                      平均速度: {avgTime !== null ? `${avgTime.toFixed(2)}秒` : '暂无数据'}
+                    </span>
+                    <span>
+                      熟悉程度: {frequency}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            );
+          })
         ) : (
           <li className="text-center text-gray-500 py-8">No words added yet.</li>
         )}

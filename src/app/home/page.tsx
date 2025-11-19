@@ -76,19 +76,11 @@ const Home = observer(() => {
           // Save input time to localStorage and sync in background
           await saveInputTime(word, inputTimeSeconds);
           
-          // Get average time for this word
-          const averageTime = words.getAverageInputTime(word);
-          
-          if (averageTime !== null) {
-            // Compare with average: faster = decrease (knows well), slower = increase (needs practice)
-            const delta = inputTimeSeconds < averageTime ? -1 : 1;
-            await updateWordFrequency(word, delta);
-          } else {
-            // First time: use neutral frequency increase
-            await updateWordFrequency(word, 1);
-          }
+          // Calculate frequency delta based on input speed vs length category average
+          const delta = words.calculateFrequencyDelta(word, inputTimeSeconds);
+          await updateWordFrequency(word, delta);
         } else {
-          // No timer data: just increase frequency
+          // No timer data: use neutral frequency increase
           await updateWordFrequency(word, 1);
         }
       }
