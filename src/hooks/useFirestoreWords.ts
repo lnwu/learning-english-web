@@ -162,10 +162,13 @@ class Words {
       return [];
     }
 
-    // Weighted random selection based on mastery level
+    // Weighted random selection based on mastery level and practice count
     // Lower mastery = higher selection probability
+    // Fewer practice sessions = higher selection probability
     const wordsWithWeights = storedWords.map(([word, translation]) => {
       const frequency = this.getFrequency(word);
+      const practiceCount = this.getInputTimes(word).length;
+      
       // Calculate mastery level (0-4)
       const getMasteryLevel = (freq: number): number => {
         if (freq <= -3) return 0;
@@ -176,14 +179,36 @@ class Words {
       };
       const masteryLevel = getMasteryLevel(frequency);
       
-      // Weight inversely proportional to mastery level
+      // Weight based on mastery level
       // Level 0 (not mastered): weight 100
       // Level 1 (beginner): weight 80
       // Level 2 (learning): weight 50
       // Level 3 (familiar): weight 20
       // Level 4 (mastered): weight 5
       const weightsByLevel = [100, 80, 50, 20, 5];
-      const weight = weightsByLevel[masteryLevel];
+      const masteryWeight = weightsByLevel[masteryLevel];
+      
+      // Weight based on practice count (inverse relationship)
+      // 0 practices: multiplier 2.0 (highest)
+      // 1-2 practices: multiplier 1.5
+      // 3-5 practices: multiplier 1.2
+      // 6-10 practices: multiplier 1.0
+      // 11+ practices: multiplier 0.8
+      let practiceMultiplier: number;
+      if (practiceCount === 0) {
+        practiceMultiplier = 2.0; // New words get highest priority
+      } else if (practiceCount <= 2) {
+        practiceMultiplier = 1.5;
+      } else if (practiceCount <= 5) {
+        practiceMultiplier = 1.2;
+      } else if (practiceCount <= 10) {
+        practiceMultiplier = 1.0;
+      } else {
+        practiceMultiplier = 0.8; // Well-practiced words get lower priority
+      }
+      
+      // Combined weight: mastery weight * practice multiplier
+      const weight = masteryWeight * practiceMultiplier;
       
       return { word, translation, weight };
     });
