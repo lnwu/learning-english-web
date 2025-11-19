@@ -6,11 +6,15 @@ import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
+import { useLocale } from "@/hooks";
+import { type Locale } from "@/lib/i18n";
 
 const Profile = observer(() => {
   const { data: session } = useSession();
-  const { words, loading, error } = useFirestoreWords();
+  const { words, resetPracticeRecords, loading, error } = useFirestoreWords();
   const [isClient, setIsClient] = useState(false);
+  const { locale, setLocale, t } = useLocale();
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -48,43 +52,113 @@ const Profile = observer(() => {
   // Sort by average time (slowest first)
   wordsWithTimes.sort((a, b) => b.avgTime - a.avgTime);
 
+  const handleResetRecords = async () => {
+    if (!confirm(t('profile.resetConfirm'))) {
+      return;
+    }
+
+    setResetting(true);
+    try {
+      await resetPracticeRecords();
+      alert(t('profile.resetSuccess'));
+      window.location.reload(); // Reload to show updated stats
+    } catch (err) {
+      console.error("Reset failed:", err);
+      alert(t('profile.resetError'));
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleLanguageChange = (newLocale: Locale) => {
+    setLocale(newLocale);
+  };
+
   return (
     isClient && (
       <main className="container mx-auto p-4 max-w-4xl">
-        <h1 className="text-3xl font-bold mb-6">User Profile</h1>
+        <h1 className="text-3xl font-bold mb-6">{t('profile.title')}</h1>
 
         {/* User Info */}
         {session?.user && (
           <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Account Information</h2>
+            <h2 className="text-xl font-semibold mb-4">{t('profile.accountInfo')}</h2>
             <div className="space-y-2">
-              <p><strong>Email:</strong> {session.user.email}</p>
-              {session.user.name && <p><strong>Name:</strong> {session.user.name}</p>}
+              <p><strong>{t('profile.email')}:</strong> {session.user.email}</p>
+              {session.user.name && <p><strong>{t('profile.name')}:</strong> {session.user.name}</p>}
             </div>
           </div>
         )}
 
+        {/* Settings */}
+        <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">{t('profile.settings')}</h2>
+          
+          {/* Language Selector */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">{t('profile.language')}</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleLanguageChange('zh')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  locale === 'zh'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                中文
+              </button>
+              <button
+                onClick={() => handleLanguageChange('en')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  locale === 'en'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                English
+              </button>
+            </div>
+          </div>
+
+          {/* Reset Practice Records */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 className="text-lg font-semibold mb-2 text-red-600 dark:text-red-400">{t('profile.resetData')}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {t('profile.resetDataDesc')}
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleResetRecords}
+              disabled={resetting}
+              className="bg-red-50 hover:bg-red-100 text-red-600 border-red-300"
+            >
+              {resetting ? t('common.loading') : t('profile.resetButton')}
+            </Button>
+          </div>
+        </div>
+
         {/* Statistics */}
         <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Learning Statistics</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('profile.statistics')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-300">
                 {totalWords}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Total Words</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300">{t('profile.totalWords')}</div>
             </div>
             <div className="p-4 bg-green-50 dark:bg-green-900 rounded-lg">
               <div className="text-3xl font-bold text-green-600 dark:text-green-300">
-                {overallAverageTime !== null ? `${overallAverageTime.toFixed(1)}s` : 'N/A'}
+                {overallAverageTime !== null ? `${overallAverageTime.toFixed(1)}${t('profile.seconds')}` : t('profile.noData')}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Average Input Time</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300">{t('profile.averageTime')}</div>
             </div>
             <div className="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg">
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-300">
                 {wordsWithTimes.length}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Words Practiced</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300">{t('profile.wordsPracticed')}</div>
             </div>
           </div>
         </div>

@@ -559,6 +559,44 @@ export const useFirestoreWords = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 重置所有练习记录（频率和输入时间）
+  const resetPracticeRecords = async () => {
+    if (!session?.user?.email) {
+      throw new Error("User not authenticated");
+    }
+
+    try {
+      await ensureFirebaseAuth(session.user.email);
+      const userId = session.user.email;
+
+      // Reset local state
+      words.allWords.forEach((translation, word) => {
+        words.wordFrequencies.set(word, 0);
+        words.wordInputTimes.set(word, []);
+      });
+
+      // Update all words in Firestore
+      const updatePromises = Array.from(words.wordIds.entries()).map(async ([word, wordId]) => {
+        const wordDocRef = doc(db, "users", userId, "words", wordId);
+        await updateDoc(wordDocRef, {
+          frequency: 0,
+          inputTimes: [],
+        });
+      });
+
+      await Promise.all(updatePromises);
+      
+      // Clear sync queue
+      SyncQueueManager.clearQueue();
+      setPendingCount(0);
+
+      console.log("Practice records reset successfully");
+    } catch (err) {
+      console.error("Failed to reset practice records:", err);
+      throw new Error("Failed to reset practice records");
+    }
+  };
+
   return { 
     words, 
     addWord, 
@@ -567,6 +605,7 @@ export const useFirestoreWords = () => {
     updateWordFrequency, 
     saveInputTime,
     syncToFirestore,
+    resetPracticeRecords,
     loading, 
     error, 
     syncing,
