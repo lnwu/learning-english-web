@@ -83,4 +83,11 @@ export class SyncQueueManager {
   static getQueueLength(): number {
     return this.getQueue().length;
   }
+  
+  // 获取待同步的唯一单词数量
+  static getUniqueWordCount(): number {
+    const queue = this.getQueue();
+    const uniqueWords = new Set(queue.map(item => item.word));
+    return uniqueWords.size;
+  }
 }

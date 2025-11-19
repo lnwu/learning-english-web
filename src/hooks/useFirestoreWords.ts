@@ -250,7 +250,7 @@ export const useFirestoreWords = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0); // 待同步的单词数量（不是项目数量）
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -387,7 +387,7 @@ export const useFirestoreWords = () => {
         wordId,
         data: { frequency: words.getFrequency(word) },
       });
-      setPendingCount(SyncQueueManager.getQueueLength());
+      setPendingCount(SyncQueueManager.getUniqueWordCount());
     }
   };
 
@@ -404,7 +404,7 @@ export const useFirestoreWords = () => {
         wordId,
         data: { inputTime: timeInSeconds },
       });
-      setPendingCount(SyncQueueManager.getQueueLength());
+      setPendingCount(SyncQueueManager.getUniqueWordCount());
     }
   };
 
@@ -474,7 +474,7 @@ export const useFirestoreWords = () => {
         SyncQueueManager.incrementRetry(item.id);
       });
 
-      setPendingCount(SyncQueueManager.getQueueLength());
+      setPendingCount(SyncQueueManager.getUniqueWordCount());
     } finally {
       setSyncing(false);
     }
@@ -487,7 +487,7 @@ export const useFirestoreWords = () => {
     const doSync = () => syncToFirestore();
 
     // 初始化：显示待同步数量
-    setPendingCount(SyncQueueManager.getQueueLength());
+    setPendingCount(SyncQueueManager.getUniqueWordCount());
 
     // 检查是否有待迁移的数据
     if (hasPendingMigration() && words.wordIds.size > 0) {

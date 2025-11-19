@@ -20,7 +20,7 @@ const SyncIndicator = React.forwardRef<HTMLDivElement, SyncIndicatorProps>(
           syncing && "animate-pulse",
           className
         )}
-        title={syncing ? "正在同步到云端..." : `${pendingCount} 项待同步`}
+        title={syncing ? "正在同步到云端..." : `${pendingCount} 个单词待同步`}
       >
         <div className="flex items-center space-x-2">
           {syncing ? (
@@ -64,7 +64,7 @@ const SyncIndicator = React.forwardRef<HTMLDivElement, SyncIndicatorProps>(
                 />
               </svg>
               <span className="text-sm font-medium">
-                待同步: {pendingCount}
+                {pendingCount} 个单词待同步
               </span>
               {onManualSync && (
                 <button
