@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   collection,
   addDoc,
@@ -11,10 +11,13 @@ import {
   where,
   getDocs,
   updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { db, auth, ensureFirebaseAuth } from "@/lib/firebase";
 import { useSession } from "next-auth/react";
 import { makeAutoObservable } from "mobx";
+import { SyncQueueManager } from "@/lib/syncQueue";
+import { migrateLocalDataToFirestore, hasPendingMigration } from "@/lib/migrateLocalData";
 
 class Words {
   static MAX_RANDOM_WORDS = 5;
@@ -222,6 +225,8 @@ export const useFirestoreWords = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const setupFirestore = async () => {
@@ -344,86 +349,202 @@ export const useFirestoreWords = () => {
     }
   };
 
-  const updateWordFrequency = async (word: string, delta: number) => {
-    if (!session?.user?.email) {
-      throw new Error("User not authenticated");
-    }
+  const updateWordFrequency = (word: string, delta: number) => {
+    // Update local state immediately
+    words.updateFrequency(word, delta);
 
+    // Add to sync queue
     const wordId = words.getWordId(word);
-    if (!wordId) {
-      console.error("Word ID not found for:", word);
-      return;
-    }
-
-    try {
-      // Ensure Firebase Auth is signed in
-      await ensureFirebaseAuth(session.user.email);
-
-      const userId = session.user.email;
-      const wordDocRef = doc(db, "users", userId, "words", wordId);
-
-      // Update local state first for immediate UI feedback
-      words.updateFrequency(word, delta);
-
-      // Then update Firestore
-      await updateDoc(wordDocRef, {
-        frequency: words.getFrequency(word),
+    if (wordId) {
+      SyncQueueManager.addToQueue({
+        type: 'frequency',
+        word,
+        wordId,
+        data: { frequency: words.getFrequency(word) },
       });
-    } catch (err) {
-      console.error("Failed to update word frequency:", err);
-      // Revert local change on error
-      words.updateFrequency(word, -delta);
-      throw new Error("Failed to update word frequency in cloud");
+      setPendingCount(SyncQueueManager.getQueueLength());
     }
   };
 
-  const saveInputTime = async (word: string, timeInSeconds: number) => {
-    if (!session?.user?.email) {
-      console.warn("User not authenticated, saving time to localStorage only");
-      // Save to localStorage even without auth
-      const localKey = `inputTimes_${word}`;
-      const existingTimes = JSON.parse(localStorage.getItem(localKey) || "[]");
-      existingTimes.push(timeInSeconds);
-      localStorage.setItem(localKey, JSON.stringify(existingTimes));
-      return;
-    }
-
-    const wordId = words.getWordId(word);
-    if (!wordId) {
-      console.error("Word ID not found for:", word);
-      return;
-    }
-
-    // Save to localStorage first (fast, non-blocking)
-    const localKey = `inputTimes_${word}`;
-    const existingTimes = JSON.parse(localStorage.getItem(localKey) || "[]");
-    existingTimes.push(timeInSeconds);
-    localStorage.setItem(localKey, JSON.stringify(existingTimes));
-
+  const saveInputTime = (word: string, timeInSeconds: number) => {
     // Update local MobX state immediately
     words.addInputTime(word, timeInSeconds);
 
-    // Queue background sync to Firestore
+    // Add to sync queue
+    const wordId = words.getWordId(word);
+    if (wordId) {
+      SyncQueueManager.addToQueue({
+        type: 'inputTime',
+        word,
+        wordId,
+        data: { inputTime: timeInSeconds },
+      });
+      setPendingCount(SyncQueueManager.getQueueLength());
+    }
+  };
+
+  // 批量同步到 Firestore
+  const syncToFirestore = async () => {
+    if (!session?.user?.email) {
+      console.warn("User not authenticated, skipping sync");
+      return;
+    }
+
+    const queue = SyncQueueManager.getQueue();
+    if (queue.length === 0) {
+      return;
+    }
+
     setSyncing(true);
-    
+    console.log(`Syncing ${queue.length} items to Firestore...`);
+
     try {
       await ensureFirebaseAuth(session.user.email);
       const userId = session.user.email;
-      const wordDocRef = doc(db, "users", userId, "words", wordId);
 
-      await updateDoc(wordDocRef, {
-        inputTimes: words.getInputTimes(word),
+      // 按单词分组批量更新
+      const updates: Map<string, { frequency?: number; inputTimes: number[] }> = new Map();
+
+      queue.forEach(item => {
+        const existing = updates.get(item.wordId) || { inputTimes: [] };
+
+        if (item.type === 'frequency' && item.data.frequency !== undefined) {
+          existing.frequency = item.data.frequency;
+        }
+        if (item.type === 'inputTime' && item.data.inputTime !== undefined) {
+          existing.inputTimes.push(item.data.inputTime);
+        }
+
+        updates.set(item.wordId, existing);
       });
 
-      // Clear from localStorage after successful sync
-      localStorage.removeItem(localKey);
-    } catch (err) {
-      console.error("Failed to sync input time to Firestore:", err);
-      // Keep in localStorage for later retry
+      // 批量更新到 Firestore
+      const updatePromises = Array.from(updates.entries()).map(async ([wordId, data]) => {
+        const wordDocRef = doc(db, "users", userId, "words", wordId);
+        const updateData: Record<string, number | ReturnType<typeof arrayUnion>> = {};
+
+        if (data.frequency !== undefined) {
+          updateData.frequency = data.frequency;
+        }
+        if (data.inputTimes.length > 0) {
+          // 使用 arrayUnion 避免覆盖
+          updateData.inputTimes = arrayUnion(...data.inputTimes);
+        }
+
+        await updateDoc(wordDocRef, updateData);
+      });
+
+      await Promise.all(updatePromises);
+
+      // 同步成功，清空队列
+      SyncQueueManager.clearQueue();
+      setPendingCount(0);
+
+      console.log("Sync completed successfully");
+    } catch (error) {
+      console.error("Sync failed:", error);
+
+      // 增加重试次数
+      queue.forEach(item => {
+        SyncQueueManager.incrementRetry(item.id);
+      });
+
+      setPendingCount(SyncQueueManager.getQueueLength());
     } finally {
       setSyncing(false);
     }
   };
 
-  return { words, addWord, deleteWord, removeAllWords, updateWordFrequency, saveInputTime, loading, error, syncing };
+  // 定时同步
+  useEffect(() => {
+    if (!session?.user?.email) return;
+    
+    const doSync = () => syncToFirestore();
+
+    // 初始化：显示待同步数量
+    setPendingCount(SyncQueueManager.getQueueLength());
+
+    // 检查是否有待迁移的数据
+    if (hasPendingMigration() && words.wordIds.size > 0) {
+      console.log("Found pending migration data, migrating...");
+      migrateLocalDataToFirestore(session.user.email, words.wordIds).then(result => {
+        console.log("Migration result:", result);
+        if (result.success) {
+          console.log(`Migrated ${result.migratedCount} items`);
+        } else {
+          console.error("Migration errors:", result.errors);
+        }
+      });
+    }
+
+    // 设置定时器：每 30 秒同步一次
+    const SYNC_INTERVAL = 30 * 1000; // 30 秒
+
+    syncTimerRef.current = setInterval(doSync, SYNC_INTERVAL);
+
+    // 页面加载时立即同步一次（清理积压）
+    doSync();
+
+    // 清理定时器
+    return () => {
+      if (syncTimerRef.current) {
+        clearInterval(syncTimerRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email]);
+
+  // 页面可见性变化时同步
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && session?.user?.email) {
+        syncToFirestore();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email]);
+
+  // 网络恢复时同步
+  useEffect(() => {
+    const handleOnline = () => {
+      if (session?.user?.email) {
+        console.log('Network restored, syncing...');
+        syncToFirestore();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email]);
+
+  // 页面卸载前同步
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (SyncQueueManager.getQueueLength() > 0) {
+        syncToFirestore();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { 
+    words, 
+    addWord, 
+    deleteWord, 
+    removeAllWords, 
+    updateWordFrequency, 
+    saveInputTime,
+    syncToFirestore,
+    loading, 
+    error, 
+    syncing,
+    pendingCount,
+  };
 };

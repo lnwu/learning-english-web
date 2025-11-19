@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useFirestoreWords } from "@/hooks";
 
 const Home = observer(() => {
-  const { words, updateWordFrequency, saveInputTime, syncing, loading, error } = useFirestoreWords();
+  const { words, updateWordFrequency, saveInputTime, syncToFirestore, syncing, pendingCount, loading, error } = useFirestoreWords();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const [randomWords, setRandomWords] = useState<[string, string][]>([]);
@@ -132,7 +132,11 @@ const Home = observer(() => {
   return (
     isClient && (
       <>
-        <SyncIndicator syncing={syncing} />
+        <SyncIndicator 
+          syncing={syncing} 
+          pendingCount={pendingCount}
+          onManualSync={syncToFirestore}
+        />
         <main>
           <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
         <ul className="space-y-2">
