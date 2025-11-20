@@ -4,10 +4,11 @@ import { Input, Button, FrequencyBar, SyncIndicator } from "@/components/ui";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
-import { useFirestoreWords } from "@/hooks";
+import { useFirestoreWords, useLocale } from "@/hooks";
 
 const Home = observer(() => {
   const { words, updateWordFrequency, saveInputTime, syncToFirestore, syncing, pendingCount, loading, error } = useFirestoreWords();
+  const { t } = useLocale();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const [randomWords, setRandomWords] = useState<[string, string][]>([]);
@@ -111,7 +112,7 @@ const Home = observer(() => {
   if (loading) {
     return (
       <main>
-        <div className="text-center">Loading your words...</div>
+        <div className="text-center">{t('common.loading')}</div>
       </main>
     );
   }
@@ -119,10 +120,10 @@ const Home = observer(() => {
   if (error) {
     return (
       <main>
-        <div className="text-center text-red-500">Error: {error}</div>
+        <div className="text-center text-red-500">{t('common.error')}: {error}</div>
         <div className="text-center mt-4">
           <Link href="/add-word">
-            <Button>Add New Word</Button>
+            <Button>{t('addWord.title')}</Button>
           </Link>
         </div>
       </main>
@@ -215,10 +216,10 @@ const Home = observer(() => {
         </ul>
           <div className="flex space-x-2 justify-end">
             <Button type="submit" disabled={!isCorrect()}>
-              Refresh
+              {t('home.refresh')}
             </Button>
             <Link href="/add-word">
-              <Button type="button">Add New Word</Button>
+              <Button type="button">{t('addWord.title')}</Button>
             </Link>
           </div>
           </form>

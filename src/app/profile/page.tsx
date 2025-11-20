@@ -165,16 +165,16 @@ const Profile = observer(() => {
 
         {/* Average Speed by Word Length */}
         <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">按单词长度分类的平均输入速度</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('profile.speedByLength')}</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            根据单词长度分组的平均输入时间
+            {t('profile.speedByLengthDesc')}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { category: 0, label: "短单词 (≤5字母)", color: "blue" },
-              { category: 1, label: "中等单词 (6-10字母)", color: "yellow" },
-              { category: 2, label: "长单词 (>10字母)", color: "red" }
-            ].map(({ category, label, color }) => {
+              { category: 0, labelKey: "profile.shortWords", color: "blue" },
+              { category: 1, labelKey: "profile.mediumWords", color: "yellow" },
+              { category: 2, labelKey: "profile.longWords", color: "red" }
+            ].map(({ category, labelKey, color }) => {
               const avgTime = words.getAverageTimeByLengthCategory(category);
               const colorClasses = {
                 blue: "bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300",
@@ -185,9 +185,9 @@ const Profile = observer(() => {
               return (
                 <div key={category} className={`p-4 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
                   <div className="text-2xl font-bold">
-                    {avgTime !== null ? `${avgTime.toFixed(2)}秒` : '暂无数据'}
+                    {avgTime !== null ? `${avgTime.toFixed(2)}${t('profile.seconds')}` : t('profile.noData')}
                   </div>
-                  <div className="text-sm opacity-80 mt-1">{label}</div>
+                  <div className="text-sm opacity-80 mt-1">{t(labelKey)}</div>
                 </div>
               );
             })}
@@ -197,9 +197,9 @@ const Profile = observer(() => {
         {/* Word Performance Details */}
         {wordsWithTimes.length > 0 && (
           <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Word Performance</h2>
+            <h2 className="text-xl font-semibold mb-4">{t('profile.wordPerformance')}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Words sorted by average input time (slowest first)
+              {t('profile.wordPerformanceDesc')}
             </p>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {wordsWithTimes.map(({ word, avgTime, count }) => (
@@ -210,13 +210,13 @@ const Profile = observer(() => {
                   <div className="flex-1">
                     <span className="font-medium">{word}</span>
                     <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                      ({count} practice{count !== 1 ? 's' : ''})
+                      ({count} {t('profile.practices')})
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">{avgTime.toFixed(1)}s</div>
+                    <div className="font-semibold">{avgTime.toFixed(1)}{t('profile.seconds')}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      熟悉程度: {words.getFrequency(word)}
+                      {t('profile.mastery')}: {words.getFrequency(word)}
                     </div>
                   </div>
                 </div>
@@ -229,7 +229,7 @@ const Profile = observer(() => {
         {wordsWithTimes.length === 0 && (
           <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow text-center">
             <p className="text-gray-600 dark:text-gray-400">
-              No practice data yet. Start practicing words to see your statistics!
+              {t('profile.noPracticeData')}
             </p>
           </div>
         )}
@@ -237,13 +237,13 @@ const Profile = observer(() => {
         {/* Navigation */}
         <div className="flex space-x-4">
           <Link href="/home">
-            <Button>Practice Words</Button>
+            <Button>{t('profile.practiceWords')}</Button>
           </Link>
           <Link href="/add-word">
-            <Button variant="outline">Add New Word</Button>
+            <Button variant="outline">{t('addWord.title')}</Button>
           </Link>
           <Link href="/all-words">
-            <Button variant="outline">View All Words</Button>
+            <Button variant="outline">{t('profile.allWords')}</Button>
           </Link>
         </div>
       </main>

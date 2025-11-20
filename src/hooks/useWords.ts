@@ -1,3 +1,5 @@
+"use client";
+
 import { useLocalStorage } from "react-use";
 import { makeAutoObservable } from "mobx";
 import { useEffect } from "react";

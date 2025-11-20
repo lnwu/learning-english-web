@@ -1,6 +1,6 @@
 "use client";
 
-import { useFirestoreWords } from "@/hooks";
+import { useFirestoreWords, useLocale } from "@/hooks";
 import { migrateLocalStorageToFirestore } from "@/lib/migrateToFirestore";
 import { useSession } from "next-auth/react";
 import { useSyncExternalStore, useState, useEffect } from "react";
@@ -16,6 +16,7 @@ const getServerSnapshot = () => false;
 const Home = observer(() => {
   const { data: session } = useSession();
   const { words, deleteWord, loading, error } = useFirestoreWords();
+  const { t } = useLocale();
   const isClient = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [migrating, setMigrating] = useState(false);
   const [hasLocalStorage, setHasLocalStorage] = useState(false);
@@ -64,7 +65,7 @@ const Home = observer(() => {
   if (loading) {
     return (
       <main className="container mx-auto p-4">
-        <div className="text-center">Loading your words...</div>
+        <div className="text-center">{t('common.loading')}</div>
       </main>
     );
   }
@@ -72,10 +73,10 @@ const Home = observer(() => {
   if (error) {
     return (
       <main className="container mx-auto p-4">
-        <div className="text-center text-red-500">Error: {error}</div>
+        <div className="text-center text-red-500">{t('common.error')}: {error}</div>
         <div className="text-center mt-4">
           <Link href="/add-word">
-            <Button>Back to Add Word</Button>
+            <Button>{t('allWords.backToAdd')}</Button>
           </Link>
         </div>
       </main>
@@ -86,7 +87,7 @@ const Home = observer(() => {
 
   return (
     <main className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">All Words</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('allWords.title')}</h1>
 
       {/* Migration Banner */}
       {hasLocalStorage && isClient && (
@@ -154,11 +155,11 @@ const Home = observer(() => {
             );
           })
         ) : (
-          <li className="text-center text-gray-500 py-8">No words added yet.</li>
+          <li className="text-center text-gray-500 py-8">{t('allWords.noWords')}</li>
         )}
       </ul>
       <Link href="/add-word">
-        <Button className="mt-4">Back to Add Word</Button>
+        <Button className="mt-4">{t('allWords.backToAdd')}</Button>
       </Link>
     </main>
   );

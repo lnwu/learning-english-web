@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/hooks";
 
 interface FrequencyBarProps {
   frequency: number;
@@ -23,6 +24,7 @@ const getMasteryLevel = (frequency: number): number => {
 
 const FrequencyBar = React.forwardRef<HTMLDivElement, FrequencyBarProps>(
   ({ frequency, className }, ref) => {
+    const { t } = useLocale();
     const masteryLevel = getMasteryLevel(frequency);
     
     // Define colors for each mastery level
@@ -35,18 +37,18 @@ const FrequencyBar = React.forwardRef<HTMLDivElement, FrequencyBarProps>(
     ];
 
     const levelLabels = [
-      "未掌握",  // Not mastered
-      "初学",    // Beginner
-      "学习中",  // Learning
-      "熟悉",    // Familiar
-      "已掌握",  // Mastered
+      t('mastery.notMastered'),
+      t('mastery.beginner'),
+      t('mastery.learning'),
+      t('mastery.familiar'),
+      t('mastery.mastered'),
     ];
 
     return (
       <div
         ref={ref}
-        className={cn("flex flex-col items-center gap-1", className)}
-        title={`熟悉程度: ${levelLabels[masteryLevel]} (${frequency})`}
+        className={cn("flex items-center gap-2", className)}
+        title={`${t('profile.mastery')}: ${levelLabels[masteryLevel]} (${frequency})`}
       >
         <div className="flex gap-1">
           {[0, 1, 2, 3, 4].map((level) => (
@@ -61,7 +63,7 @@ const FrequencyBar = React.forwardRef<HTMLDivElement, FrequencyBarProps>(
             />
           ))}
         </div>
-        <span className="text-xs text-gray-600 dark:text-gray-400">
+        <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
           {levelLabels[masteryLevel]}
         </span>
       </div>
