@@ -90,6 +90,9 @@ const Home = observer(() => {
 
     try {
       await Promise.all(updatePromises);
+      
+      // Trigger immediate sync after processing correct answers
+      await syncToFirestore();
     } catch (err) {
       console.error("Failed to update frequencies:", err);
     }
@@ -177,9 +180,14 @@ const Home = observer(() => {
                     onChange={(e) => {
                       const value = e.target.value.toLowerCase();
                       
-                      // Start timer on first character typed
-                      if (value.length === 1 && !timerStartRef.current.has(word)) {
+                      // Start timer on first character typed (restart if user cleared and retyped)
+                      if (value.length === 1) {
                         timerStartRef.current.set(word, Date.now());
+                      }
+                      
+                      // Clear timer if user clears input
+                      if (value.length === 0) {
+                        timerStartRef.current.delete(word);
                       }
                       
                       words.setUserInput(word, value);
