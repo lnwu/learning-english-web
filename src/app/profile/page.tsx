@@ -1,12 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui";
-import { useFirestoreWords } from "@/hooks";
+import { Button, ConfirmDialog } from "@/components/ui";
+import { useFirestoreWords, useLocale, toast } from "@/hooks";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { useLocale } from "@/hooks";
 import { type Locale } from "@/lib/i18n";
 
 const Profile = observer(() => {
@@ -15,6 +14,7 @@ const Profile = observer(() => {
   const [isClient, setIsClient] = useState(false);
   const { locale, setLocale, t } = useLocale();
   const [resetting, setResetting] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -53,19 +53,21 @@ const Profile = observer(() => {
   wordsWithTimes.sort((a, b) => b.avgTime - a.avgTime);
 
   const handleResetRecords = async () => {
-    if (!confirm(t('profile.resetConfirm'))) {
-      return;
-    }
-
     setResetting(true);
     try {
       await resetPracticeRecords();
-      alert(t('profile.resetSuccess'));
-      window.location.reload(); // Reload to show updated stats
+      toast({
+        title: t('profile.resetSuccess'),
+        variant: "success",
+      });
+      // Reload after a brief delay to show the toast
+      setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       console.error("Reset failed:", err);
-      alert(t('profile.resetError'));
-    } finally {
+      toast({
+        title: t('profile.resetError'),
+        variant: "destructive",
+      });
       setResetting(false);
     }
   };
@@ -129,7 +131,7 @@ const Profile = observer(() => {
             </p>
             <Button
               variant="outline"
-              onClick={handleResetRecords}
+              onClick={() => setShowResetDialog(true)}
               disabled={resetting}
               className="bg-red-50 hover:bg-red-100 text-red-600 border-red-300"
             >
@@ -246,6 +248,18 @@ const Profile = observer(() => {
             <Button variant="outline">{t('profile.allWords')}</Button>
           </Link>
         </div>
+
+        {/* Reset Confirmation Dialog */}
+        <ConfirmDialog
+          open={showResetDialog}
+          onOpenChange={setShowResetDialog}
+          title={t('profile.resetConfirm')}
+          description={t('profile.resetConfirmDesc')}
+          confirmText={t('common.confirm')}
+          cancelText={t('common.cancel')}
+          onConfirm={handleResetRecords}
+          variant="destructive"
+        />
       </main>
     )
   );

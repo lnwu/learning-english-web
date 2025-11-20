@@ -8,6 +8,8 @@ export const translations = {
     'app.title': 'Learning English',
     'common.loading': '加载中...',
     'common.error': '错误',
+    'common.confirm': '确认',
+    'common.cancel': '取消',
     
     // Header/Menu
     'menu.profile': '个人资料',
@@ -45,7 +47,8 @@ export const translations = {
     'profile.resetData': '重置练习记录',
     'profile.resetDataDesc': '清除所有单词的频率和输入时间记录（不删除单词本身）',
     'profile.resetButton': '重置所有记录',
-    'profile.resetConfirm': '确定要重置所有练习记录吗？此操作不可撤销。',
+    'profile.resetConfirm': '确定要重置所有练习记录吗？',
+    'profile.resetConfirmDesc': '这将清空所有单词的频率和输入时间数据，但保留单词本身。此操作不可撤销。',
     'profile.resetSuccess': '练习记录已重置',
     'profile.resetError': '重置失败，请重试',
     'profile.practices': '练习',
@@ -85,6 +88,8 @@ export const translations = {
     'app.title': 'Learning English',
     'common.loading': 'Loading...',
     'common.error': 'Error',
+    'common.confirm': 'Confirm',
+    'common.cancel': 'Cancel',
     
     // Header/Menu
     'menu.profile': 'Profile',
@@ -122,7 +127,8 @@ export const translations = {
     'profile.resetData': 'Reset Practice Records',
     'profile.resetDataDesc': 'Clear all frequency and input time records (words themselves will not be deleted)',
     'profile.resetButton': 'Reset All Records',
-    'profile.resetConfirm': 'Are you sure you want to reset all practice records? This action cannot be undone.',
+    'profile.resetConfirm': 'Are you sure you want to reset all practice records?',
+    'profile.resetConfirmDesc': 'This will clear all frequency and input time data for all words, but keep the words themselves. This action cannot be undone.',
     'profile.resetSuccess': 'Practice records have been reset',
     'profile.resetError': 'Reset failed, please try again',
     'profile.practices': 'practices',
