@@ -4,12 +4,10 @@ import { useState, useEffect } from "react";
 import { getCurrentLocale, setLocale as setI18nLocale, t, type Locale } from "@/lib/i18n";
 
 export const useLocale = () => {
-  const [locale, setLocaleState] = useState<Locale>('zh');
+  // Initialize with the current locale from localStorage
+  const [locale, setLocaleState] = useState<Locale>(() => getCurrentLocale());
 
   useEffect(() => {
-    // Initialize from localStorage
-    setLocaleState(getCurrentLocale());
-
     // Listen for locale changes
     const handleLocaleChange = () => {
       setLocaleState(getCurrentLocale());
