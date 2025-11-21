@@ -137,17 +137,17 @@ const Home = observer(() => {
                     <strong className="text-lg">{word}</strong>
                     {practiceCount > 0 && (
                       <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
-                        练习 {practiceCount} 次
+                        {t('allWords.practiced')} {practiceCount} {t('allWords.times')}
                       </span>
                     )}
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400 block mb-2">{translation}</span>
                   <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                     <span>
-                      平均速度: {avgTime !== null ? `${avgTime.toFixed(2)}秒` : '暂无数据'}
+                      {t('allWords.averageSpeed')}: {avgTime !== null ? `${avgTime.toFixed(2)}${t('profile.seconds')}` : t('profile.noData')}
                     </span>
                     <span>
-                      熟悉程度: {frequency}
+                      {t('allWords.mastery')}: {frequency}
                     </span>
                   </div>
                 </div>

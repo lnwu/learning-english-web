@@ -175,6 +175,9 @@ const Home = observer(() => {
                           // Calculate frequency delta based on input speed vs length category average
                           const delta = words.calculateFrequencyDelta(word, inputTimeSeconds);
                           await updateWordFrequency(word, delta);
+                          
+                          // Clear timer after saving time and updating frequency
+                          timerStartRef.current.delete(word);
                         } else {
                           // No timer data: use neutral frequency increase
                           await updateWordFrequency(word, 1);
