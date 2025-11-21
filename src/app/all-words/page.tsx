@@ -1,6 +1,6 @@
 "use client";
 
-import { useFirestoreWords } from "@/hooks";
+import { useFirestoreWords, useLocale } from "@/hooks";
 import { migrateLocalStorageToFirestore } from "@/lib/migrateToFirestore";
 import { useSession } from "next-auth/react";
 import { useSyncExternalStore, useState, useEffect } from "react";
@@ -16,6 +16,7 @@ const getServerSnapshot = () => false;
 const Home = observer(() => {
   const { data: session } = useSession();
   const { words, deleteWord, loading, error } = useFirestoreWords();
+  const { t } = useLocale();
   const isClient = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [migrating, setMigrating] = useState(false);
   const [hasLocalStorage, setHasLocalStorage] = useState(false);
@@ -64,7 +65,7 @@ const Home = observer(() => {
   if (loading) {
     return (
       <main className="container mx-auto p-4">
-        <div className="text-center">Loading your words...</div>
+        <div className="text-center">{t('common.loading')}</div>
       </main>
     );
   }
@@ -72,10 +73,10 @@ const Home = observer(() => {
   if (error) {
     return (
       <main className="container mx-auto p-4">
-        <div className="text-center text-red-500">Error: {error}</div>
+        <div className="text-center text-red-500">{t('common.error')}: {error}</div>
         <div className="text-center mt-4">
           <Link href="/add-word">
-            <Button>Back to Add Word</Button>
+            <Button>{t('allWords.backToAdd')}</Button>
           </Link>
         </div>
       </main>
@@ -86,7 +87,7 @@ const Home = observer(() => {
 
   return (
     <main className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">All Words</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('allWords.title')}</h1>
 
       {/* Migration Banner */}
       {hasLocalStorage && isClient && (
@@ -110,34 +111,55 @@ const Home = observer(() => {
 
       <ul className="space-y-2">
         {allWords.size > 0 ? (
-          Array.from(allWords.entries()).map(([word, translation], index) => (
-            <li key={word} className="flex items-center space-x-2 p-3 border rounded">
-              <button
-                onClick={async () => {
-                  try {
-                    await deleteWord(word);
-                  } catch (error) {
-                    console.error("Delete failed:", error);
-                    alert("Failed to delete word. Please try again.");
-                  }
-                }}
-                title="Delete"
-                className="text-red-600 hover:text-red-800"
-              >
-                🗑️
-              </button>
-              <div className="flex-1">
-                <strong className="block">{word}</strong>
-                <span className="text-sm text-gray-600">{translation}</span>
-              </div>
-            </li>
-          ))
+          Array.from(allWords.entries()).map(([word, translation]) => {
+            const avgTime = words.getAverageInputTime(word);
+            const frequency = words.getFrequency(word);
+            const practiceCount = words.getInputTimes(word).length;
+            
+            return (
+              <li key={word} className="flex items-center space-x-3 p-3 border rounded">
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteWord(word);
+                    } catch (error) {
+                      console.error("Delete failed:", error);
+                      alert("Failed to delete word. Please try again.");
+                    }
+                  }}
+                  title="Delete"
+                  className="text-red-600 hover:text-red-800"
+                >
+                  🗑️
+                </button>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <strong className="text-lg">{word}</strong>
+                    {practiceCount > 0 && (
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                        {t('allWords.practiced')} {practiceCount} {t('allWords.times')}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 block mb-2">{translation}</span>
+                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    <span>
+                      {t('allWords.averageSpeed')}: {avgTime !== null ? `${avgTime.toFixed(2)}${t('profile.seconds')}` : t('profile.noData')}
+                    </span>
+                    <span>
+                      {t('allWords.mastery')}: {frequency}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            );
+          })
         ) : (
-          <li className="text-center text-gray-500 py-8">No words added yet.</li>
+          <li className="text-center text-gray-500 py-8">{t('allWords.noWords')}</li>
         )}
       </ul>
       <Link href="/add-word">
-        <Button className="mt-4">Back to Add Word</Button>
+        <Button className="mt-4">{t('allWords.backToAdd')}</Button>
       </Link>
     </main>
   );
