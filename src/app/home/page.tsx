@@ -63,40 +63,8 @@ const Home = observer(() => {
       return;
     }
 
-    // Process all correct answers with time-based frequency adjustment
-    const updatePromises = randomWords.map(async ([word]) => {
-      const inputValue = words.userInputs.get(word);
-      if (inputValue === word) {
-        const startTime = timerStartRef.current.get(word);
-        
-        if (startTime) {
-          // Calculate input time in seconds
-          const endTime = Date.now();
-          const inputTimeSeconds = (endTime - startTime) / 1000;
-          
-          // Save input time to localStorage and sync in background
-          await saveInputTime(word, inputTimeSeconds);
-          
-          // Calculate frequency delta based on input speed vs length category average
-          const delta = words.calculateFrequencyDelta(word, inputTimeSeconds);
-          await updateWordFrequency(word, delta);
-        } else {
-          // No timer data: use neutral frequency increase
-          await updateWordFrequency(word, 1);
-        }
-      }
-      return Promise.resolve();
-    });
-
-    try {
-      await Promise.all(updatePromises);
-      
-      // Trigger immediate sync after processing correct answers
-      await syncToFirestore();
-    } catch (err) {
-      console.error("Failed to update frequencies:", err);
-    }
-
+    // All frequency updates and time tracking are already done in onChange
+    // Just refresh to get new words
     refreshWords();
   };
 
@@ -177,7 +145,7 @@ const Home = observer(() => {
                         inputRefs.current.set(word, el);
                       }
                     }}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const value = e.target.value.toLowerCase();
                       
                       // Start timer on first character typed (restart if user cleared and retyped)
@@ -191,6 +159,27 @@ const Home = observer(() => {
                       }
                       
                       words.setUserInput(word, value);
+                      
+                      // If word is now correct, save time and update frequency immediately
+                      if (value === word) {
+                        const startTime = timerStartRef.current.get(word);
+                        
+                        if (startTime) {
+                          // Calculate input time in seconds
+                          const endTime = Date.now();
+                          const inputTimeSeconds = (endTime - startTime) / 1000;
+                          
+                          // Save input time to localStorage and queue for sync
+                          await saveInputTime(word, inputTimeSeconds);
+                          
+                          // Calculate frequency delta based on input speed vs length category average
+                          const delta = words.calculateFrequencyDelta(word, inputTimeSeconds);
+                          await updateWordFrequency(word, delta);
+                        } else {
+                          // No timer data: use neutral frequency increase
+                          await updateWordFrequency(word, 1);
+                        }
+                      }
                     }} 
                     value={inputValue} 
                   />
