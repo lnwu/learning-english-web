@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, ConfirmDialog, Input } from "@/components/ui";
+import { Button, ConfirmDialog, Input, MasteryBar } from "@/components/ui";
 import { useFirestoreWords, useLocale, toast } from "@/hooks";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
@@ -32,25 +32,41 @@ const Profile = observer(() => {
   const totalWords = words.allWords.size;
   const overallAverageTime = words.getOverallAverageInputTime();
   
-  const wordsWithTimes: Array<{ word: string; avgTime: number; count: number }> = [];
+  const wordsWithStats: Array<{ 
+    word: string; 
+    avgTime: number; 
+    count: number;
+    masteryScore: number;
+    correctCount: number;
+    totalAttempts: number;
+  }> = [];
+  
   words.allWords.forEach((translation, word) => {
     const times = words.getInputTimes(word);
-    if (times.length > 0) {
-      const avg = times.reduce((sum, t) => sum + t, 0) / times.length;
-      wordsWithTimes.push({ word, avgTime: avg, count: times.length });
-    }
+    const masteryScore = words.getMasteryScore(word);
+    const avg = times.length > 0 
+      ? times.reduce((sum, t) => sum + t, 0) / times.length 
+      : 0;
+    wordsWithStats.push({ 
+      word, 
+      avgTime: avg, 
+      count: times.length,
+      masteryScore,
+      correctCount: words.getCorrectCount(word),
+      totalAttempts: words.getTotalAttempts(word),
+    });
   });
 
-  // Sort by average time (slowest first)
-  wordsWithTimes.sort((a, b) => b.avgTime - a.avgTime);
+  // Sort by mastery score (lowest first - needs most practice)
+  wordsWithStats.sort((a, b) => a.masteryScore - b.masteryScore);
 
-  const wordsByCategory: Record<number, Array<{ word: string; avgTime: number; count: number }>> = {
+  const wordsByCategory: Record<number, typeof wordsWithStats> = {
     0: [], // short words
     1: [], // medium words
     2: [], // long words
   };
 
-  wordsWithTimes.forEach((item) => {
+  wordsWithStats.forEach((item) => {
     const category = getWordLengthCategory(item.word);
     wordsByCategory[category].push(item);
   });
@@ -61,7 +77,7 @@ const Profile = observer(() => {
       return wordsByCategory;
     }
     const query = searchQuery.toLowerCase().trim();
-    const filtered: Record<number, Array<{ word: string; avgTime: number; count: number }>> = {
+    const filtered: Record<number, typeof wordsWithStats> = {
       0: [],
       1: [],
       2: [],
@@ -76,6 +92,11 @@ const Profile = observer(() => {
 
   const filteredWordsByCategory = getFilteredWordsByCategory();
 
+  // Calculate average mastery score
+  const avgMasteryScore = wordsWithStats.length > 0
+    ? Math.round(wordsWithStats.reduce((sum, w) => sum + w.masteryScore, 0) / wordsWithStats.length)
+    : 0;
+
   const handleResetRecords = async () => {
     setResetting(true);
     try {
@@ -84,7 +105,6 @@ const Profile = observer(() => {
         title: t('profile.resetSuccess'),
         variant: "success",
       });
-      // Reload after a brief delay to show the toast
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       console.error("Reset failed:", err);
@@ -183,7 +203,7 @@ const Profile = observer(() => {
         {/* Statistics */}
         <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">{t('profile.statistics')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-300">
                 {totalWords}
@@ -198,9 +218,15 @@ const Profile = observer(() => {
             </div>
             <div className="p-4 bg-purple-50 dark:bg-purple-900 rounded-lg">
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-300">
-                {wordsWithTimes.length}
+                {wordsWithStats.filter(w => w.count > 0).length}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-300">{t('profile.wordsPracticed')}</div>
+            </div>
+            <div className="p-4 bg-orange-50 dark:bg-orange-900 rounded-lg">
+              <div className="text-3xl font-bold text-orange-600 dark:text-orange-300">
+                {avgMasteryScore}%
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-300">{t('profile.avgMastery')}</div>
             </div>
           </div>
         </div>
@@ -260,7 +286,7 @@ const Profile = observer(() => {
                   {/* Words in this category */}
                   {categoryWords.length > 0 && (
                     <div className="max-h-48 overflow-y-auto">
-                      {categoryWords.map(({ word, avgTime: wordAvgTime, count }) => (
+                      {categoryWords.map(({ word, avgTime: wordAvgTime, count, masteryScore, correctCount, totalAttempts }) => (
                         <div
                           key={word}
                           className="flex items-center justify-between p-3 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800"
@@ -268,13 +294,18 @@ const Profile = observer(() => {
                           <div className="flex-1">
                             <span className="font-medium">{word}</span>
                             <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                              ({count} {t('profile.practices')})
+                              ({correctCount}/{totalAttempts} {t('profile.correct')})
                             </span>
                           </div>
-                          <div className="text-right">
-                            <div className="font-semibold">{wordAvgTime.toFixed(1)}{t('profile.seconds')}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {t('profile.mastery')}: {words.getFrequency(word)}
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="font-semibold">
+                                {count > 0 ? `${wordAvgTime.toFixed(1)}${t('profile.seconds')}` : '-'}
+                              </div>
+                            </div>
+                            <MasteryBar score={masteryScore} showLabel={false} />
+                            <div className="text-xs text-gray-500 dark:text-gray-400 w-10 text-right">
+                              {masteryScore}%
                             </div>
                           </div>
                         </div>
@@ -294,7 +325,7 @@ const Profile = observer(() => {
         </div>
 
         {/* No Data Message */}
-        {wordsWithTimes.length === 0 && (
+        {wordsWithStats.length === 0 && (
           <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow text-center">
             <p className="text-gray-600 dark:text-gray-400">
               {t('profile.noPracticeData')}

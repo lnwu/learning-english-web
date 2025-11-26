@@ -95,7 +95,7 @@ const Home = () => {
 
     setLoading(true);
 
-    const existingWord = words.wordTranslations.has(word);
+    const existingWord = words.allWords.has(word);
     if (existingWord) {
       alert(t('addWord.wordExists').replace('{word}', word));
       clear();

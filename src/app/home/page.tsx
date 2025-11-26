@@ -1,20 +1,20 @@
 "use client";
 
-import { Input, Button, FrequencyBar, SyncIndicator } from "@/components/ui";
+import { Input, Button, MasteryBar, SyncIndicator } from "@/components/ui";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useFirestoreWords, useLocale } from "@/hooks";
 
 const Home = observer(() => {
-  const { words, updateWordFrequency, saveInputTime, syncToFirestore, syncing, pendingCount, loading, error } = useFirestoreWords();
+  const { words, recordCorrectAttempt, recordIncorrectAttempt, syncToFirestore, syncing, pendingCount, loading, error } = useFirestoreWords();
   const { t } = useLocale();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const [randomWords, setRandomWords] = useState<[string, string][]>([]);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-  const hintRevealedRef = useRef<Set<string>>(new Set()); // Track which hints were revealed
-  const timerStartRef = useRef<Map<string, number>>(new Map()); // Track start time for each word
+  const hintRevealedRef = useRef<Set<string>>(new Set());
+  const timerStartRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     setIsClient(true);
@@ -50,7 +50,6 @@ const Home = observer(() => {
   };
 
   const isCorrect = () => {
-    // Check if all currently displayed words have been filled in correctly
     return (
       randomWords.length > 0 &&
       randomWords.every(([word]) => words.userInputs.get(word) === word)
@@ -63,20 +62,14 @@ const Home = observer(() => {
       return;
     }
 
-    // All frequency updates and time tracking are already done in onChange
-    // Just refresh to get new words
     refreshWords();
   };
 
-  const handleHintReveal = async (word: string) => {
-    // Only decrement frequency once per word per session
+  const handleHintReveal = (word: string) => {
+    // Only record incorrect attempt once per word per session
     if (!hintRevealedRef.current.has(word)) {
       hintRevealedRef.current.add(word);
-      try {
-        await updateWordFrequency(word, -1);
-      } catch (err) {
-        console.error("Failed to update frequency on hint reveal:", err);
-      }
+      recordIncorrectAttempt(word);
     }
   };
 
@@ -145,10 +138,10 @@ const Home = observer(() => {
                         inputRefs.current.set(word, el);
                       }
                     }}
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const value = e.target.value.toLowerCase();
                       
-                      // Start timer on first character typed (restart if user cleared and retyped)
+                      // Start timer on first character typed
                       if (value.length === 1) {
                         timerStartRef.current.set(word, Date.now());
                       }
@@ -160,27 +153,18 @@ const Home = observer(() => {
                       
                       words.setUserInput(word, value);
                       
-                      // If word is now correct, save time and update frequency immediately
+                      // If word is now correct, record the attempt
                       if (value === word) {
                         const startTime = timerStartRef.current.get(word);
                         
                         if (startTime) {
-                          // Calculate input time in seconds
                           const endTime = Date.now();
                           const inputTimeSeconds = (endTime - startTime) / 1000;
                           
-                          // Save input time to localStorage and queue for sync
-                          await saveInputTime(word, inputTimeSeconds);
+                          // Record correct attempt with input time
+                          recordCorrectAttempt(word, inputTimeSeconds);
                           
-                          // Calculate frequency delta based on input speed vs length category average
-                          const delta = words.calculateFrequencyDelta(word, inputTimeSeconds);
-                          await updateWordFrequency(word, delta);
-                          
-                          // Clear timer after saving time and updating frequency
                           timerStartRef.current.delete(word);
-                        } else {
-                          // No timer data: use neutral frequency increase
-                          await updateWordFrequency(word, 1);
                         }
                       }
                     }} 
@@ -216,7 +200,7 @@ const Home = observer(() => {
                       </div>
                     )}
                   </span>
-                  <FrequencyBar frequency={words.getFrequency(word)} />
+                  <MasteryBar score={words.getMasteryScore(word)} />
                 </div>
               </li>
             );

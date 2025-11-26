@@ -1,12 +1,13 @@
 // 同步队列项类型
 export interface SyncQueueItem {
   id: string;
-  type: 'frequency' | 'inputTime';
+  type: 'attempt';
   word: string;
   wordId: string;
   data: {
-    frequency?: number;
-    inputTime?: number;
+    correctCount: number;
+    totalAttempts: number;
+    inputTimes: number[];
   };
   timestamp: number;
   retryCount: number;

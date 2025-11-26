@@ -31,6 +31,7 @@ export const translations = {
     'profile.totalWords': '总单词数',
     'profile.averageTime': '平均输入时间',
     'profile.wordsPracticed': '已练习单词',
+    'profile.avgMastery': '平均熟练度',
     'profile.speedByLength': '按单词长度分类的平均输入速度',
     'profile.speedByLengthDesc': '根据单词长度分组的平均输入时间',
     'profile.shortWords': '短单词 (≤5字母)',
@@ -45,23 +46,24 @@ export const translations = {
     'profile.settings': '设置',
     'profile.language': '语言',
     'profile.resetData': '重置练习记录',
-    'profile.resetDataDesc': '清除所有单词的频率和输入时间记录（不删除单词本身）',
+    'profile.resetDataDesc': '清除所有单词的练习记录（不删除单词本身）',
     'profile.resetButton': '重置所有记录',
     'profile.resetConfirm': '确定要重置所有练习记录吗？',
-    'profile.resetConfirmDesc': '这将清空所有单词的频率和输入时间数据，但保留单词本身。此操作不可撤销。',
+    'profile.resetConfirmDesc': '这将清空所有单词的练习数据，但保留单词本身。此操作不可撤销。',
     'profile.resetSuccess': '练习记录已重置',
     'profile.resetError': '重置失败，请重试',
     'profile.practices': '练习',
     'profile.seconds': '秒',
-    'profile.mastery': '熟悉程度',
+    'profile.mastery': '熟练度',
     'profile.searchWord': '搜索单词...',
+    'profile.correct': '正确',
     
     // All Words page
     'allWords.title': '所有单词',
     'allWords.noWords': '还没有添加单词。',
     'allWords.backToAdd': '返回添加单词',
     'allWords.averageSpeed': '平均速度',
-    'allWords.mastery': '熟悉程度',
+    'allWords.mastery': '熟练度',
     'allWords.practiced': '练习',
     'allWords.times': '次',
     
@@ -85,11 +87,14 @@ export const translations = {
     'sync.syncNow': '立即同步',
     
     // Mastery levels
-    'mastery.notMastered': '未掌握',
-    'mastery.beginner': '初学',
+    'mastery.new': '新单词',
     'mastery.learning': '学习中',
     'mastery.familiar': '熟悉',
+    'mastery.proficient': '熟练',
     'mastery.mastered': '已掌握',
+    // Legacy mastery levels (for backwards compatibility)
+    'mastery.notMastered': '未掌握',
+    'mastery.beginner': '初学',
   },
   en: {
     // Common
@@ -119,6 +124,7 @@ export const translations = {
     'profile.totalWords': 'Total Words',
     'profile.averageTime': 'Average Input Time',
     'profile.wordsPracticed': 'Words Practiced',
+    'profile.avgMastery': 'Average Mastery',
     'profile.speedByLength': 'Average Input Speed by Word Length',
     'profile.speedByLengthDesc': 'Average input time grouped by word length',
     'profile.shortWords': 'Short Words (≤5 letters)',
@@ -133,16 +139,17 @@ export const translations = {
     'profile.settings': 'Settings',
     'profile.language': 'Language',
     'profile.resetData': 'Reset Practice Records',
-    'profile.resetDataDesc': 'Clear all frequency and input time records (words themselves will not be deleted)',
+    'profile.resetDataDesc': 'Clear all practice records (words themselves will not be deleted)',
     'profile.resetButton': 'Reset All Records',
     'profile.resetConfirm': 'Are you sure you want to reset all practice records?',
-    'profile.resetConfirmDesc': 'This will clear all frequency and input time data for all words, but keep the words themselves. This action cannot be undone.',
+    'profile.resetConfirmDesc': 'This will clear all practice data for all words, but keep the words themselves. This action cannot be undone.',
     'profile.resetSuccess': 'Practice records have been reset',
     'profile.resetError': 'Reset failed, please try again',
     'profile.practices': 'practices',
     'profile.seconds': 's',
     'profile.mastery': 'Mastery',
     'profile.searchWord': 'Search word...',
+    'profile.correct': 'correct',
     
     // All Words page
     'allWords.title': 'All Words',
@@ -173,11 +180,14 @@ export const translations = {
     'sync.syncNow': 'Sync Now',
     
     // Mastery levels
-    'mastery.notMastered': 'Not Mastered',
-    'mastery.beginner': 'Beginner',
+    'mastery.new': 'New',
     'mastery.learning': 'Learning',
     'mastery.familiar': 'Familiar',
+    'mastery.proficient': 'Proficient',
     'mastery.mastered': 'Mastered',
+    // Legacy mastery levels (for backwards compatibility)
+    'mastery.notMastered': 'Not Mastered',
+    'mastery.beginner': 'Beginner',
   },
 };
 

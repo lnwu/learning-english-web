@@ -11,76 +11,131 @@ import {
   where,
   getDocs,
   updateDoc,
-  arrayUnion,
 } from "firebase/firestore";
-import { db, auth, ensureFirebaseAuth } from "@/lib/firebase";
+import { db, ensureFirebaseAuth } from "@/lib/firebase";
 import { useSession } from "next-auth/react";
 import { makeAutoObservable } from "mobx";
 import { SyncQueueManager } from "@/lib/syncQueue";
-import { migrateLocalDataToFirestore, hasPendingMigration } from "@/lib/migrateLocalData";
+import {
+  migrateLocalDataToFirestore,
+  hasPendingMigration,
+} from "@/lib/migrateLocalData";
+import {
+  calculateMasteryScore,
+  calculatePriority,
+  getMasteryLevelIndex,
+  type MasteryResult,
+} from "@/lib/masteryCalculator";
+
+interface WordData {
+  word: string;
+  translation: string;
+  correctCount: number;
+  totalAttempts: number;
+  inputTimes: number[];
+  lastPracticedAt: Date | null;
+  createdAt: Date;
+  id: string;
+}
 
 class Words {
   static MAX_RANDOM_WORDS = 5;
-  static MIN_FREQUENCY = -5; // Floor value for negative frequencies
+  static MAX_INPUT_TIMES = 20; // Keep last 20 input times
 
-  wordTranslations: Map<string, string> = new Map();
-  wordFrequencies: Map<string, number> = new Map();
-  wordIds: Map<string, string> = new Map(); // Track Firestore document IDs
-  wordInputTimes: Map<string, number[]> = new Map(); // Track input times (in seconds)
+  wordData: Map<string, WordData> = new Map();
   userInputs: Map<string, string> = new Map();
 
   constructor() {
     makeAutoObservable(this);
   }
 
-  setWords(words: Array<{ word: string; translation: string; frequency?: number; inputTimes?: number[]; id: string }>) {
-    this.wordTranslations = new Map(words.map(w => [w.word, w.translation]));
-    this.wordFrequencies = new Map(words.map(w => [w.word, w.frequency ?? 0]));
-    this.wordInputTimes = new Map(words.map(w => [w.word, w.inputTimes ?? []]));
-    this.wordIds = new Map(words.map(w => [w.word, w.id]));
+  setWords(words: WordData[]) {
+    this.wordData = new Map(words.map((w) => [w.word, w]));
   }
 
   addWord(word: string, translation: string, id: string) {
-    this.wordTranslations.set(word, translation);
-    this.wordFrequencies.set(word, 0);
-    this.wordInputTimes.set(word, []);
-    this.wordIds.set(word, id);
+    this.wordData.set(word, {
+      word,
+      translation,
+      correctCount: 0,
+      totalAttempts: 0,
+      inputTimes: [],
+      lastPracticedAt: null,
+      createdAt: new Date(),
+      id,
+    });
   }
 
   deleteWord(word: string) {
-    this.wordTranslations.delete(word);
-    this.wordFrequencies.delete(word);
-    this.wordInputTimes.delete(word);
-    this.wordIds.delete(word);
+    this.wordData.delete(word);
   }
 
   removeAllWords() {
-    this.wordTranslations.clear();
-    this.wordFrequencies.clear();
-    this.wordInputTimes.clear();
-    this.wordIds.clear();
+    this.wordData.clear();
   }
 
-  addInputTime(word: string, timeInSeconds: number) {
-    const times = this.wordInputTimes.get(word) ?? [];
-    times.push(timeInSeconds);
-    this.wordInputTimes.set(word, times);
+  // Record a correct attempt with input time
+  recordCorrectAttempt(word: string, inputTimeSeconds: number) {
+    const data = this.wordData.get(word);
+    if (!data) return;
+
+    data.totalAttempts += 1;
+    data.correctCount += 1;
+    data.inputTimes.push(inputTimeSeconds);
+
+    // Keep only last N input times
+    if (data.inputTimes.length > Words.MAX_INPUT_TIMES) {
+      data.inputTimes = data.inputTimes.slice(-Words.MAX_INPUT_TIMES);
+    }
+
+    data.lastPracticedAt = new Date();
   }
 
+  // Record an incorrect attempt (hint revealed)
+  recordIncorrectAttempt(word: string) {
+    const data = this.wordData.get(word);
+    if (!data) return;
+
+    data.totalAttempts += 1;
+    data.lastPracticedAt = new Date();
+  }
+
+  // Get mastery score for a word (0-100)
+  getMasteryScore(word: string): number {
+    const data = this.wordData.get(word);
+    if (!data) return 0;
+    return calculateMasteryScore(data).score;
+  }
+
+  // Get detailed mastery result for a word
+  getMasteryResult(word: string): MasteryResult | null {
+    const data = this.wordData.get(word);
+    if (!data) return null;
+    return calculateMasteryScore(data);
+  }
+
+  // Get mastery level index (0-4) for UI display
+  getMasteryLevelIndex(word: string): number {
+    return getMasteryLevelIndex(this.getMasteryScore(word));
+  }
+
+  // Get input times for a word
   getInputTimes(word: string): number[] {
-    return this.wordInputTimes.get(word) ?? [];
+    return this.wordData.get(word)?.inputTimes ?? [];
   }
 
+  // Get average input time for a word
   getAverageInputTime(word: string): number | null {
     const times = this.getInputTimes(word);
     if (times.length === 0) return null;
     return times.reduce((sum, time) => sum + time, 0) / times.length;
   }
 
+  // Get overall average input time across all words
   getOverallAverageInputTime(): number | null {
     const allTimes: number[] = [];
-    this.wordInputTimes.forEach((times) => {
-      allTimes.push(...times);
+    this.wordData.forEach((data) => {
+      allTimes.push(...data.inputTimes);
     });
     if (allTimes.length === 0) return null;
     return allTimes.reduce((sum, time) => sum + time, 0) / allTimes.length;
@@ -97,47 +152,40 @@ class Words {
   // Get average input time for words in the same length category
   getAverageTimeByLengthCategory(category: number): number | null {
     const categoryTimes: number[] = [];
-    
-    this.wordTranslations.forEach((translation, word) => {
+
+    this.wordData.forEach((data, word) => {
       if (this.getWordLengthCategory(word) === category) {
-        const times = this.getInputTimes(word);
-        categoryTimes.push(...times);
+        categoryTimes.push(...data.inputTimes);
       }
     });
-    
+
     if (categoryTimes.length === 0) return null;
-    return categoryTimes.reduce((sum, time) => sum + time, 0) / categoryTimes.length;
+    return (
+      categoryTimes.reduce((sum, time) => sum + time, 0) / categoryTimes.length
+    );
   }
 
-  // Calculate frequency adjustment based on input speed vs category average
-  calculateFrequencyDelta(word: string, inputTimeSeconds: number): number {
-    const category = this.getWordLengthCategory(word);
-    const categoryAverage = this.getAverageTimeByLengthCategory(category);
-    
-    if (categoryAverage === null) {
-      // No data yet for this category, use neutral increase
-      return 1;
-    }
-    
-    // If input time is less than category average, user is faster (more familiar)
-    // Decrease frequency so word appears less often
-    // If input time is greater than or equal to average, user is slower (less familiar)
-    // Increase frequency so word appears more often
-    return inputTimeSeconds < categoryAverage ? -1 : 1;
+  // Get total attempts for a word
+  getTotalAttempts(word: string): number {
+    return this.wordData.get(word)?.totalAttempts ?? 0;
   }
 
-  updateFrequency(word: string, delta: number) {
-    const currentFrequency = this.wordFrequencies.get(word) ?? 0;
-    const newFrequency = Math.max(Words.MIN_FREQUENCY, currentFrequency + delta);
-    this.wordFrequencies.set(word, newFrequency);
+  // Get correct count for a word
+  getCorrectCount(word: string): number {
+    return this.wordData.get(word)?.correctCount ?? 0;
   }
 
-  getFrequency(word: string): number {
-    return this.wordFrequencies.get(word) ?? 0;
+  // Get word data for syncing
+  getWordData(word: string): WordData | undefined {
+    return this.wordData.get(word);
   }
 
   getWordId(word: string): string | undefined {
-    return this.wordIds.get(word);
+    return this.wordData.get(word)?.id;
+  }
+
+  getTranslation(word: string): string | undefined {
+    return this.wordData.get(word)?.translation;
   }
 
   setUserInput(word: string, value: string) {
@@ -148,86 +196,56 @@ class Words {
     const randomWords = this.getRandomWords();
     return (
       this.userInputs.size === randomWords.length &&
-      Array.from(this.userInputs.entries()).every(([word, value]) => word === value)
+      Array.from(this.userInputs.entries()).every(
+        ([word, value]) => word === value
+      )
     );
   }
 
   get allWords(): Map<string, string> {
-    return this.wordTranslations;
+    const result = new Map<string, string>();
+    this.wordData.forEach((data, word) => {
+      result.set(word, data.translation);
+    });
+    return result;
   }
 
+  // Get random words weighted by practice priority
   getRandomWords(max: number = Words.MAX_RANDOM_WORDS): [string, string][] {
-    const storedWords = Array.from(this.allWords.entries());
-    if (storedWords.length === 0) {
+    const wordEntries = Array.from(this.wordData.entries());
+    if (wordEntries.length === 0) {
       return [];
     }
 
-    // Weighted random selection based on mastery level and practice count
-    // Lower mastery = higher selection probability
-    // Fewer practice sessions = higher selection probability
-    const wordsWithWeights = storedWords.map(([word, translation]) => {
-      const frequency = this.getFrequency(word);
-      const practiceCount = this.getInputTimes(word).length;
-      
-      // Calculate mastery level (0-4)
-      const getMasteryLevel = (freq: number): number => {
-        if (freq <= -3) return 0;
-        if (freq <= 0) return 1;
-        if (freq <= 3) return 2;
-        if (freq <= 6) return 3;
-        return 4;
-      };
-      const masteryLevel = getMasteryLevel(frequency);
-      
-      // Weight based on mastery level
-      // Level 0 (not mastered): weight 100
-      // Level 1 (beginner): weight 80
-      // Level 2 (learning): weight 50
-      // Level 3 (familiar): weight 20
-      // Level 4 (mastered): weight 5
-      const weightsByLevel = [100, 80, 50, 20, 5];
-      const masteryWeight = weightsByLevel[masteryLevel];
-      
-      // Weight based on practice count (inverse relationship)
-      // 0 practices: multiplier 2.0 (highest)
-      // 1-2 practices: multiplier 1.5
-      // 3-5 practices: multiplier 1.2
-      // 6-10 practices: multiplier 1.0
-      // 11+ practices: multiplier 0.8
-      let practiceMultiplier: number;
-      if (practiceCount === 0) {
-        practiceMultiplier = 2.0; // New words get highest priority
-      } else if (practiceCount <= 2) {
-        practiceMultiplier = 1.5;
-      } else if (practiceCount <= 5) {
-        practiceMultiplier = 1.2;
-      } else if (practiceCount <= 10) {
-        practiceMultiplier = 1.0;
-      } else {
-        practiceMultiplier = 0.8; // Well-practiced words get lower priority
-      }
-      
-      // Combined weight: mastery weight * practice multiplier
-      const weight = masteryWeight * practiceMultiplier;
-      
-      return { word, translation, weight };
+    // Calculate priority for each word
+    const wordsWithPriority = wordEntries.map(([word, data]) => {
+      const masteryScore = calculateMasteryScore(data).score;
+      const priority = calculatePriority(
+        masteryScore,
+        data.lastPracticedAt,
+        data.totalAttempts
+      );
+      return { word, translation: data.translation, priority };
     });
 
     const selected: [string, string][] = [];
-    const available = [...wordsWithWeights];
+    const available = [...wordsWithPriority];
 
-    for (let i = 0; i < Math.min(max, storedWords.length); i++) {
+    for (let i = 0; i < Math.min(max, wordEntries.length); i++) {
       if (available.length === 0) break;
 
-      // Calculate total weight
-      const totalWeight = available.reduce((sum, item) => sum + item.weight, 0);
-      
-      // Random selection based on weight
-      let random = Math.random() * totalWeight;
+      // Calculate total priority
+      const totalPriority = available.reduce(
+        (sum, item) => sum + item.priority,
+        0
+      );
+
+      // Random selection based on priority
+      let random = Math.random() * totalPriority;
       let selectedIndex = 0;
 
       for (let j = 0; j < available.length; j++) {
-        random -= available[j].weight;
+        random -= available[j].priority;
         if (random <= 0) {
           selectedIndex = j;
           break;
@@ -250,7 +268,7 @@ export const useFirestoreWords = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0); // 待同步的单词数量（不是项目数量）
+  const [pendingCount, setPendingCount] = useState(0);
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -261,26 +279,31 @@ export const useFirestoreWords = () => {
       }
 
       try {
-        // Ensure Firebase Auth is signed in
         await ensureFirebaseAuth(session.user.email);
 
         const userId = session.user.email;
         const wordsCollection = collection(db, "users", userId, "words");
 
-        // Real-time listener for automatic sync
         const unsubscribe = onSnapshot(
           wordsCollection,
           (snapshot) => {
-            const wordsData: Array<{ word: string; translation: string; frequency?: number; inputTimes?: number[]; id: string }> = [];
-            snapshot.forEach((doc) => {
+            const wordsData: WordData[] = snapshot.docs.map((doc) => {
               const data = doc.data();
-              wordsData.push({
+              // Migration: convert old frequency-based data to new format
+              const inputTimes = data.inputTimes ?? [];
+              const hasOldFormat = data.frequency !== undefined && data.correctCount === undefined;
+              
+              return {
                 word: data.word,
                 translation: data.translation,
-                frequency: data.frequency ?? 0,
-                inputTimes: data.inputTimes ?? [],
+                // Migration: estimate correctCount from inputTimes length if old format
+                correctCount: hasOldFormat ? inputTimes.length : (data.correctCount ?? 0),
+                totalAttempts: hasOldFormat ? inputTimes.length : (data.totalAttempts ?? 0),
+                inputTimes,
+                lastPracticedAt: data.lastPracticedAt?.toDate() ?? null,
+                createdAt: data.createdAt?.toDate() ?? new Date(),
                 id: doc.id,
-              });
+              };
             });
             words.setWords(wordsData);
             setLoading(false);
@@ -310,7 +333,6 @@ export const useFirestoreWords = () => {
     }
 
     try {
-      // Ensure Firebase Auth is signed in
       await ensureFirebaseAuth(session.user.email);
 
       const userId = session.user.email;
@@ -319,8 +341,10 @@ export const useFirestoreWords = () => {
       await addDoc(wordsCollection, {
         word,
         translation,
-        frequency: 0,
+        correctCount: 0,
+        totalAttempts: 0,
         inputTimes: [],
+        lastPracticedAt: null,
         createdAt: new Date(),
       });
     } catch (err) {
@@ -338,7 +362,6 @@ export const useFirestoreWords = () => {
     const wordsCollection = collection(db, "users", userId, "words");
 
     try {
-      // Find and delete the document
       const q = query(wordsCollection, where("word", "==", word));
       const querySnapshot = await getDocs(q);
 
@@ -374,41 +397,49 @@ export const useFirestoreWords = () => {
     }
   };
 
-  const updateWordFrequency = (word: string, delta: number) => {
-    // Update local state immediately
-    words.updateFrequency(word, delta);
+  // Record a correct attempt with input time
+  const recordCorrectAttempt = (word: string, inputTimeSeconds: number) => {
+    words.recordCorrectAttempt(word, inputTimeSeconds);
 
-    // Add to sync queue
     const wordId = words.getWordId(word);
-    if (wordId) {
+    const data = words.getWordData(word);
+    if (wordId && data) {
       SyncQueueManager.addToQueue({
-        type: 'frequency',
+        type: "attempt",
         word,
         wordId,
-        data: { frequency: words.getFrequency(word) },
+        data: {
+          correctCount: data.correctCount,
+          totalAttempts: data.totalAttempts,
+          inputTimes: data.inputTimes,
+        },
       });
       setPendingCount(SyncQueueManager.getUniqueWordCount());
     }
   };
 
-  const saveInputTime = (word: string, timeInSeconds: number) => {
-    // Update local MobX state immediately
-    words.addInputTime(word, timeInSeconds);
+  // Record an incorrect attempt (hint revealed)
+  const recordIncorrectAttempt = (word: string) => {
+    words.recordIncorrectAttempt(word);
 
-    // Add to sync queue
     const wordId = words.getWordId(word);
-    if (wordId) {
+    const data = words.getWordData(word);
+    if (wordId && data) {
       SyncQueueManager.addToQueue({
-        type: 'inputTime',
+        type: "attempt",
         word,
         wordId,
-        data: { inputTime: timeInSeconds },
+        data: {
+          correctCount: data.correctCount,
+          totalAttempts: data.totalAttempts,
+          inputTimes: data.inputTimes,
+        },
       });
       setPendingCount(SyncQueueManager.getUniqueWordCount());
     }
   };
 
-  // 批量同步到 Firestore
+  // Batch sync to Firestore
   const syncToFirestore = async () => {
     if (!session?.user?.email) {
       console.warn("User not authenticated, skipping sync");
@@ -427,41 +458,32 @@ export const useFirestoreWords = () => {
       await ensureFirebaseAuth(session.user.email);
       const userId = session.user.email;
 
-      // 按单词分组批量更新
-      const updates: Map<string, { frequency?: number; inputTimes: number[] }> = new Map();
+      // Group by wordId to batch updates
+      const updates: Map<
+        string,
+        { correctCount: number; totalAttempts: number; inputTimes: number[] }
+      > = new Map();
 
-      queue.forEach(item => {
-        const existing = updates.get(item.wordId) || { inputTimes: [] };
-
-        if (item.type === 'frequency' && item.data.frequency !== undefined) {
-          existing.frequency = item.data.frequency;
-        }
-        if (item.type === 'inputTime' && item.data.inputTime !== undefined) {
-          existing.inputTimes.push(item.data.inputTime);
-        }
-
-        updates.set(item.wordId, existing);
+      queue.forEach((item) => {
+        // Use the latest data for each word
+        updates.set(item.wordId, item.data);
       });
 
-      // 批量更新到 Firestore
-      const updatePromises = Array.from(updates.entries()).map(async ([wordId, data]) => {
-        const wordDocRef = doc(db, "users", userId, "words", wordId);
-        const updateData: Record<string, number | ReturnType<typeof arrayUnion>> = {};
-
-        if (data.frequency !== undefined) {
-          updateData.frequency = data.frequency;
+      // Batch update to Firestore
+      const updatePromises = Array.from(updates.entries()).map(
+        async ([wordId, data]) => {
+          const wordDocRef = doc(db, "users", userId, "words", wordId);
+          await updateDoc(wordDocRef, {
+            correctCount: data.correctCount,
+            totalAttempts: data.totalAttempts,
+            inputTimes: data.inputTimes,
+            lastPracticedAt: new Date(),
+          });
         }
-        if (data.inputTimes.length > 0) {
-          // 使用 arrayUnion 避免覆盖
-          updateData.inputTimes = arrayUnion(...data.inputTimes);
-        }
-
-        await updateDoc(wordDocRef, updateData);
-      });
+      );
 
       await Promise.all(updatePromises);
 
-      // 同步成功，清空队列
       SyncQueueManager.clearQueue();
       setPendingCount(0);
 
@@ -469,8 +491,7 @@ export const useFirestoreWords = () => {
     } catch (error) {
       console.error("Sync failed:", error);
 
-      // 增加重试次数
-      queue.forEach(item => {
+      queue.forEach((item) => {
         SyncQueueManager.incrementRetry(item.id);
       });
 
@@ -480,37 +501,42 @@ export const useFirestoreWords = () => {
     }
   };
 
-  // 定时同步
+  // Periodic sync
   useEffect(() => {
     if (!session?.user?.email) return;
-    
+
     const doSync = () => syncToFirestore();
 
-    // 初始化：显示待同步数量
+    // Initialize: show pending count
     setPendingCount(SyncQueueManager.getUniqueWordCount());
 
-    // 检查是否有待迁移的数据
-    if (hasPendingMigration() && words.wordIds.size > 0) {
+    // Check for pending migration data
+    if (hasPendingMigration() && words.wordData.size > 0) {
       console.log("Found pending migration data, migrating...");
-      migrateLocalDataToFirestore(session.user.email, words.wordIds).then(result => {
-        console.log("Migration result:", result);
-        if (result.success) {
-          console.log(`Migrated ${result.migratedCount} items`);
-        } else {
-          console.error("Migration errors:", result.errors);
-        }
+      const wordIds = new Map<string, string>();
+      words.wordData.forEach((data, word) => {
+        wordIds.set(word, data.id);
       });
+      migrateLocalDataToFirestore(session.user.email, wordIds).then(
+        (result) => {
+          console.log("Migration result:", result);
+          if (result.success) {
+            console.log(`Migrated ${result.migratedCount} items`);
+          } else {
+            console.error("Migration errors:", result.errors);
+          }
+        }
+      );
     }
 
-    // 设置定时器：每 30 秒同步一次
-    const SYNC_INTERVAL = 30 * 1000; // 30 秒
+    // Set timer: sync every 30 seconds
+    const SYNC_INTERVAL = 30 * 1000;
 
     syncTimerRef.current = setInterval(doSync, SYNC_INTERVAL);
 
-    // 页面加载时立即同步一次（清理积压）
+    // Sync immediately on page load
     doSync();
 
-    // 清理定时器
     return () => {
       if (syncTimerRef.current) {
         clearInterval(syncTimerRef.current);
@@ -519,34 +545,35 @@ export const useFirestoreWords = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.email]);
 
-  // 页面可见性变化时同步
+  // Sync on visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && session?.user?.email) {
+      if (document.visibilityState === "visible" && session?.user?.email) {
         syncToFirestore();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.email]);
 
-  // 网络恢复时同步
+  // Sync on network restore
   useEffect(() => {
     const handleOnline = () => {
       if (session?.user?.email) {
-        console.log('Network restored, syncing...');
+        console.log("Network restored, syncing...");
         syncToFirestore();
       }
     };
 
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.email]);
 
-  // 页面卸载前同步
+  // Sync before page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (SyncQueueManager.getQueueLength() > 0) {
@@ -554,12 +581,12 @@ export const useFirestoreWords = () => {
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 重置所有练习记录（频率和输入时间）
+  // Reset all practice records
   const resetPracticeRecords = async () => {
     if (!session?.user?.email) {
       throw new Error("User not authenticated");
@@ -570,22 +597,28 @@ export const useFirestoreWords = () => {
       const userId = session.user.email;
 
       // Reset local state
-      words.allWords.forEach((translation, word) => {
-        words.wordFrequencies.set(word, 0);
-        words.wordInputTimes.set(word, []);
+      words.wordData.forEach((data) => {
+        data.correctCount = 0;
+        data.totalAttempts = 0;
+        data.inputTimes = [];
+        data.lastPracticedAt = null;
       });
 
       // Update all words in Firestore
-      const updatePromises = Array.from(words.wordIds.entries()).map(async ([word, wordId]) => {
-        const wordDocRef = doc(db, "users", userId, "words", wordId);
-        await updateDoc(wordDocRef, {
-          frequency: 0,
-          inputTimes: [],
-        });
-      });
+      const updatePromises = Array.from(words.wordData.entries()).map(
+        async ([, data]) => {
+          const wordDocRef = doc(db, "users", userId, "words", data.id);
+          await updateDoc(wordDocRef, {
+            correctCount: 0,
+            totalAttempts: 0,
+            inputTimes: [],
+            lastPracticedAt: null,
+          });
+        }
+      );
 
       await Promise.all(updatePromises);
-      
+
       // Clear sync queue
       SyncQueueManager.clearQueue();
       setPendingCount(0);
@@ -597,17 +630,17 @@ export const useFirestoreWords = () => {
     }
   };
 
-  return { 
-    words, 
-    addWord, 
-    deleteWord, 
-    removeAllWords, 
-    updateWordFrequency, 
-    saveInputTime,
+  return {
+    words,
+    addWord,
+    deleteWord,
+    removeAllWords,
+    recordCorrectAttempt,
+    recordIncorrectAttempt,
     syncToFirestore,
     resetPracticeRecords,
-    loading, 
-    error, 
+    loading,
+    error,
     syncing,
     pendingCount,
   };
