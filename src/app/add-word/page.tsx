@@ -3,10 +3,11 @@
 import { Input, Button } from "@/components/ui";
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { useFirestoreWords } from "@/hooks";
+import { useFirestoreWords, useLocale } from "@/hooks";
 
 const Home = () => {
   const { words, addWord, loading: wordsLoading, error: wordsError } = useFirestoreWords();
+  const { t } = useLocale();
   const [word, setWord] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -96,7 +97,7 @@ const Home = () => {
 
     const existingWord = words.wordTranslations.has(word);
     if (existingWord) {
-      alert(`The word "${word}" already exists in the list.`);
+      alert(t('addWord.wordExists').replace('{word}', word));
       clear();
       setLoading(false);
       return;
@@ -104,7 +105,7 @@ const Home = () => {
 
     const isValidWord = /^[a-zA-Z]+$/.test(word);
     if (!isValidWord) {
-      alert(`The word "${word}" contains invalid characters or is a typo.`);
+      alert(t('addWord.invalidChars').replace('{word}', word));
       clear();
       setLoading(false);
       return;
@@ -112,7 +113,7 @@ const Home = () => {
 
     const isValidEnglishWord = await validateWord(word);
     if (!isValidEnglishWord) {
-      alert(`The word "${word}" is not recognized as a real word.`);
+      alert(t('addWord.notRecognized').replace('{word}', word));
       clear();
       setLoading(false);
       return;
@@ -129,7 +130,7 @@ const Home = () => {
     } else if (englishDefinition) {
       combinedTranslation = englishDefinition;
     } else {
-      alert(`Could not get translation for "${word}". Please try again.`);
+      alert(t('addWord.translationFailed').replace('{word}', word));
       clear();
       setLoading(false);
       return;
@@ -141,7 +142,7 @@ const Home = () => {
       clear();
     } catch (error) {
       console.error("Failed to add word:", error);
-      alert(`Failed to add word to cloud: ${error}`);
+      alert(t('addWord.addFailed') + error);
     } finally {
       setLoading(false);
     }
@@ -150,7 +151,7 @@ const Home = () => {
   if (wordsLoading) {
     return (
       <main className="space-y-4">
-        <div className="text-center">Loading...</div>
+        <div className="text-center">{t('common.loading')}</div>
       </main>
     );
   }
@@ -158,10 +159,10 @@ const Home = () => {
   if (wordsError) {
     return (
       <main className="space-y-4">
-        <div className="text-center text-red-500">Error: {wordsError}</div>
+        <div className="text-center text-red-500">{t('common.error')}: {wordsError}</div>
         <div className="text-center">
           <Link href="/">
-            <Button>Go Home</Button>
+            <Button>{t('addWord.goHome')}</Button>
           </Link>
         </div>
       </main>
@@ -171,15 +172,15 @@ const Home = () => {
   return (
     <main className="space-y-4">
       <form className="flex space-x-2" onSubmit={(e) => e.preventDefault()}>
-        <Input placeholder="Word" value={word} onChange={(e) => setWord(e.target.value.toLowerCase())} ref={inputRef} />
+        <Input placeholder={t('addWord.word')} value={word} onChange={(e) => setWord(e.target.value.toLowerCase())} ref={inputRef} />
         <Button onClick={handleAddWord} disabled={loading}>
-          Add
+          {t('addWord.add')}
         </Button>
         <Link href="/">
-          <Button type="button">Home</Button>
+          <Button type="button">{t('addWord.home')}</Button>
         </Link>
         <Link href="/all-words">
-          <Button type="button">View All Words</Button>
+          <Button type="button">{t('addWord.viewAll')}</Button>
         </Link>
       </form>
     </main>
