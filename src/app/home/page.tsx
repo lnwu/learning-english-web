@@ -200,6 +200,14 @@ const Home = observer(() => {
                         handleHintReveal(word);
                       }
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && inputValue !== word) {
+                        e.preventDefault();
+                        const utterance = new SpeechSynthesisUtterance(word);
+                        utterance.lang = 'en-US';
+                        speechSynthesis.speak(utterance);
+                      }
+                    }}
                   >
                     {inputValue === word ? "✅" : "❌"}
                     {inputValue !== word && (
