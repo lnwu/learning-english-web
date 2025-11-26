@@ -10,10 +10,25 @@ export const translations = {
     'common.error': '错误',
     'common.confirm': '确认',
     'common.cancel': '取消',
+    'common.user': '用户',
     
     // Header/Menu
     'menu.profile': '个人资料',
     'menu.logout': '退出登录',
+    
+    // Login page
+    'login.title': 'Learning English',
+    'login.subtitle': '登录以访问您的词汇库',
+    'login.signInWithGoogle': '使用 Google 登录',
+    'login.dataSaveNote': '您的词汇数据将保存到您的 Google 账户',
+    
+    // Error messages
+    'error.loadWordsFailed': '从云端加载单词失败',
+    'error.authFailed': 'Firebase 认证失败',
+    'error.notAuthenticated': '用户未登录',
+    'error.deleteWordFailed': '从云端删除单词失败',
+    'error.removeWordsFailed': '从云端删除单词失败',
+    'error.resetFailed': '重置练习记录失败',
     
     // Home page
     'home.title': '练习单词',
@@ -103,10 +118,25 @@ export const translations = {
     'common.error': 'Error',
     'common.confirm': 'Confirm',
     'common.cancel': 'Cancel',
+    'common.user': 'User',
     
     // Header/Menu
     'menu.profile': 'Profile',
     'menu.logout': 'Logout',
+    
+    // Login page
+    'login.title': 'Learning English',
+    'login.subtitle': 'Sign in to access your vocabulary',
+    'login.signInWithGoogle': 'Sign in with Google',
+    'login.dataSaveNote': 'Your vocabulary data will be saved to your Google account',
+    
+    // Error messages
+    'error.loadWordsFailed': 'Failed to load words from cloud',
+    'error.authFailed': 'Failed to authenticate with Firebase',
+    'error.notAuthenticated': 'User not authenticated',
+    'error.deleteWordFailed': 'Failed to delete word from cloud',
+    'error.removeWordsFailed': 'Failed to remove words from cloud',
+    'error.resetFailed': 'Failed to reset practice records',
     
     // Home page
     'home.title': 'Practice Words',

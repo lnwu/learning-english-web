@@ -56,7 +56,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         {user.image && !imageError ? (
           <Image
             src={user.image}
-            alt={user.name || "User"}
+            alt={user.name || t('common.user')}
             width={40}
             height={40}
             className="rounded-full"
@@ -73,7 +73,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <p className="font-medium text-sm">{user.name || "User"}</p>
+            <p className="font-medium text-sm">{user.name || t('common.user')}</p>
             <p className="text-gray-600 dark:text-gray-400 text-xs">{user.email || ""}</p>
           </div>
 
