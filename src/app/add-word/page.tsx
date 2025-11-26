@@ -172,7 +172,7 @@ const Home = () => {
   return (
     <main className="space-y-4">
       <form className="flex space-x-2" onSubmit={(e) => e.preventDefault()}>
-        <Input placeholder={t('addWord.word')} value={word} onChange={(e) => setWord(e.target.value.toLowerCase())} ref={inputRef} />
+        <Input className="w-48" placeholder={t('addWord.word')} value={word} onChange={(e) => setWord(e.target.value.toLowerCase())} ref={inputRef} />
         <Button onClick={handleAddWord} disabled={loading}>
           {t('addWord.add')}
         </Button>
