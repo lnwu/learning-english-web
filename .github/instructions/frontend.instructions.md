@@ -1,6 +1,5 @@
 ---
-paths:
-  - "src/app/**"
+applyTo: "src/app/**"
 ---
 
 # Frontend Application Instructions
@@ -174,22 +173,31 @@ import Link from "next/link";
 - Lift state only when necessary
 
 ### Shared State (MobX)
-- Use the `useWords` hook for word-related state
-- Access reactive state directly
-- No need for useEffect to sync MobX state
-- State updates trigger re-renders automatically
+- Use the `useFirestoreWords` hook for word-related state
+- Wrap components with `observer` from mobx-react-lite
+- Access reactive state directly - MobX tracks dependencies automatically
+- **Don't use useMemo/useCallback with MobX observables** - it breaks reactivity
+- Ensure all hooks are called before any conditional returns (Rules of Hooks)
 
 **Example:**
 ```typescript
-const { words, addWord, deleteWord } = useWords();
+import { observer } from "mobx-react-lite";
 
-// Access reactive properties
-const allWords = words.allWords;
-const correct = words.correct;
+const Component = observer(() => {
+  const { words, addWord, deleteWord, loading } = useFirestoreWords();
+  const { t } = useLocale();
 
-// Call methods to update state
-addWord("example", "definition\ntranslation");
-deleteWord("example");
+  // ✅ Good: Direct access (MobX tracks)
+  const allWords = words.allWords;
+  const avgTime = words.getAverageInputTime(word);
+
+  // ❌ Bad: useMemo with MobX observable
+  const allWords = useMemo(() => words.allWords, [words]);
+
+  if (loading) return <div>{t('common.loading')}</div>;
+
+  // ... rest of component
+});
 ```
 
 ## Audio Features
@@ -266,22 +274,26 @@ const speak = (text: string) => {
 ## Common Page Types
 
 ### Home/Practice Page
-- Display random words for practice
+- Display random words for practice (weighted by mastery)
 - Handle user input validation
-- Provide audio pronunciation
-- Show feedback (correct/incorrect)
+- Provide audio pronunciation (Web Speech API)
+- Show feedback (correct/incorrect with hint on focus)
+- Track input speed and update word frequency
+- Real-time sync to Firestore
 
 ### Add Word Page
-- Input validation
+- Input validation (English letters only)
 - API integration (dictionary + translation)
-- Loading states
-- Success/error feedback
+- Loading states with i18n support
+- Success/error feedback in user's language
 
-### All Words Page
-- Display word list
-- Delete functionality
-- Search/filter (if applicable)
-- Empty state handling
+### Profile Page
+- User account information
+- Language settings (Chinese/English)
+- Learning statistics (total words, average time, words practiced)
+- Word performance grouped by length category
+- Search/filter words functionality
+- Reset practice records option
 
 ## Testing Considerations
 

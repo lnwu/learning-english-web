@@ -1,6 +1,5 @@
 ---
-paths:
-  - "src/hooks/**"
+applyTo: "src/hooks/**"
 ---
 
 # Custom Hooks Instructions
@@ -23,9 +22,11 @@ These instructions apply to all custom React hooks in `src/hooks/`.
 **Example structure:**
 ```
 hooks/
-├── index.ts           # Re-exports all hooks
-├── useWords.ts        # Word management hook
-└── useLocalStorage.ts # (if added)
+├── index.ts              # Re-exports all hooks
+├── useFirestoreWords.ts  # Firestore word management (primary)
+├── useWords.ts           # LocalStorage word management (legacy)
+├── useLocale.ts          # Internationalization hook
+└── useToast.ts           # Toast notification hook
 ```
 
 ### Import/Export Pattern
@@ -77,16 +78,18 @@ return [value, setValue] as const;
 return value;
 ```
 
-## The `useWords` Hook
+## The `useFirestoreWords` Hook
 
 ### Purpose
-Manages word vocabulary state with localStorage persistence and MobX reactivity.
+Manages word vocabulary state with Firebase Firestore cloud storage and MobX reactivity.
 
 ### Architecture
 - Uses MobX `Words` class for reactive state
-- Integrates with localStorage via `react-use` library
+- Integrates with Firebase Firestore for cloud persistence
+- Real-time sync using Firestore onSnapshot
+- Offline-first with sync queue for pending changes
 - Provides methods for word CRUD operations
-- Exposes reactive computed properties
+- Tracks input times and mastery frequency
 
 ### Key Components
 
@@ -94,6 +97,8 @@ Manages word vocabulary state with localStorage persistence and MobX reactivity.
 ```typescript
 class Words {
   wordTranslations: Map<string, string> = new Map();
+  wordFrequencies: Map<string, number> = new Map();
+  wordInputTimes: Map<string, number[]> = new Map();
   userInputs: Map<string, string> = new Map();
 
   constructor() {
@@ -101,42 +106,94 @@ class Words {
   }
 
   // Methods for state manipulation
-  addWord(word: string, translation: string) { }
+  addWord(word: string, translation: string, id: string) { }
   deleteWord(word: string) { }
+  updateFrequency(word: string, delta: number) { }
+  addInputTime(word: string, timeInSeconds: number) { }
   
   // Computed properties
   get allWords(): Map<string, string> { }
-  get correct(): boolean { }
+  getAverageInputTime(word: string): number | null { }
+  getFrequency(word: string): number { }
 }
 ```
 
 #### 2. Hook Integration
 ```typescript
-export const useWords = () => {
-  const [words] = useState(() => new Words());
-  const [storedWords, setStoredWords] = useLocalStorage<[string, string][]>("words", []);
+export const useFirestoreWords = () => {
+  const { data: session } = useSession();
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    // Sync localStorage with MobX state
-  }, [storedWords]);
+    // Setup Firestore real-time listener
+    const unsubscribe = onSnapshot(wordsCollection, (snapshot) => {
+      words.setWords(snapshot.docs.map(doc => doc.data()));
+    });
+    return unsubscribe;
+  }, [session]);
 
-  return { words, addWord, deleteWord, removeAllWords };
+  return { 
+    words, 
+    addWord, 
+    deleteWord, 
+    updateWordFrequency, 
+    saveInputTime,
+    syncToFirestore,
+    loading, 
+    syncing,
+    pendingCount 
+  };
 };
 ```
 
 ### Usage Guidelines
 
-**In Components:**
+**In Components (with observer):**
 ```typescript
-const { words, addWord, deleteWord } = useWords();
+import { observer } from "mobx-react-lite";
 
-// Access reactive properties
-const allWords = words.allWords;
-const isCorrect = words.correct;
+const Component = observer(() => {
+  const { words, addWord, deleteWord, loading, syncing, pendingCount } = useFirestoreWords();
 
-// Call methods
-addWord("hello", "definition\ntranslation");
-deleteWord("hello");
+  if (loading) return <div>Loading...</div>;
+
+  // Access reactive properties directly (MobX tracks dependencies)
+  const allWords = words.allWords;
+  const avgTime = words.getAverageInputTime("hello");
+  const frequency = words.getFrequency("hello");
+
+  // Call methods
+  await addWord("hello", "definition\ntranslation");
+  await deleteWord("hello");
+});
+```
+
+**Important MobX + React Pattern:**
+```typescript
+// ✅ Good: Direct access in observer component (MobX tracks)
+const totalWords = words.allWords.size;
+
+// ❌ Bad: useMemo with MobX observable (breaks reactivity)
+const totalWords = useMemo(() => words.allWords.size, [words]);
+```
+
+## The `useLocale` Hook
+
+### Purpose
+Provides internationalization (i18n) support with Chinese and English translations.
+
+### Usage
+```typescript
+const { locale, setLocale, t } = useLocale();
+
+// Get translated text
+<h1>{t('profile.title')}</h1>
+
+// Change language
+<button onClick={() => setLocale('en')}>English</button>
+<button onClick={() => setLocale('zh')}>中文</button>
 ```
 
 ## MobX Integration

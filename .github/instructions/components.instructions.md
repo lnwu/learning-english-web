@@ -1,6 +1,5 @@
 ---
-paths:
-  - "src/components/**"
+applyTo: "src/components/**"
 ---
 
 # Component Development Instructions
@@ -12,6 +11,16 @@ These instructions apply to all React components in `src/components/`.
 
 ### UI Components (`src/components/ui/`)
 These are reusable, primitive UI components built on Radix UI or custom implementations.
+
+**Available Components:**
+- `Button` - Buttons with variants (default, outline, ghost, destructive)
+- `Input` - Text inputs with ref forwarding
+- `Alert` - Alert messages with variants
+- `Dialog` - Modal dialogs (Radix UI based)
+- `ConfirmDialog` - Confirmation dialog for destructive actions
+- `Toast` / `Toaster` - Toast notifications
+- `FrequencyBar` - Visual mastery level indicator
+- `SyncIndicator` - Shows pending sync status
 
 **Characteristics:**
 - Generic and reusable across the app

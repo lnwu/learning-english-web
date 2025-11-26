@@ -12,8 +12,11 @@ This is a modern language learning web application built with Next.js 15, React 
 - Add English words with automatic definition and Chinese translation fetching
 - Interactive quiz-style vocabulary practice
 - Audio pronunciation using Web Speech API
-- Persistent browser-based storage (localStorage)
+- Cloud storage with Firebase Firestore (with offline sync queue)
 - Word validation using Dictionary API
+- Multi-language support (Chinese/English)
+- User authentication via Google OAuth (NextAuth.js)
+- Mastery tracking based on input speed and practice frequency
 
 **Tech Stack:**
 - Framework: Next.js 15 (App Router) with React 19
@@ -21,6 +24,8 @@ This is a modern language learning web application built with Next.js 15, React 
 - State Management: MobX for reactive state
 - Styling: Tailwind CSS v4
 - UI Components: Radix UI primitives
+- Database: Firebase Firestore
+- Authentication: NextAuth.js with Google OAuth
 - Package Manager: npm
 
 ## Development Environment Setup
@@ -85,6 +90,8 @@ This is a modern language learning web application built with Next.js 15, React 
 ### State Management
 - Use MobX for complex shared state
 - Use `makeAutoObservable` for MobX stores
+- Wrap components with `observer` from mobx-react-lite for reactivity
+- **Important:** Don't use `useMemo` with MobX observables - let MobX track dependencies directly
 - Use React hooks for local component state
 - Keep state as local as possible
 - Implement proper state initialization
@@ -115,14 +122,22 @@ src/
 ├── app/              # Next.js pages and routes
 │   ├── home/         # Practice page
 │   ├── add-word/     # Add word page
-│   ├── all-words/    # Word list page
+│   ├── profile/      # User profile & word statistics
+│   ├── login/        # Authentication page
+│   ├── api/          # API routes (NextAuth)
 │   └── layout.tsx    # Root layout
 ├── components/       # Reusable React components
-│   └── ui/          # UI primitives (Button, Input, Alert)
+│   ├── ui/          # UI primitives (Button, Input, Alert, Dialog, Toast)
+│   └── auth/        # Authentication components (UserMenu)
 ├── hooks/           # Custom React hooks
-│   └── useWords.ts  # Word management logic
+│   ├── useFirestoreWords.ts  # Firestore word management
+│   ├── useLocale.ts  # i18n hook
+│   └── useToast.ts   # Toast notifications
 └── lib/             # Utility functions
-    └── utils.ts     # Helper utilities
+    ├── utils.ts     # Helper utilities (cn)
+    ├── firebase.ts  # Firebase configuration
+    ├── i18n.ts      # Internationalization
+    └── syncQueue.ts # Offline sync queue
 ```
 
 ### File and Folder Naming
@@ -175,11 +190,12 @@ Currently, no formal testing framework is configured. When adding tests:
 5. Test manually in the browser
 6. Run linting before committing
 
-### Working with LocalStorage
-- Use the `useWords` hook for word management
-- All word data persists in localStorage
-- Handle JSON parse errors gracefully
-- Clear storage only when user explicitly requests it
+### Working with Firestore
+- Use `useFirestoreWords` hook for word management (cloud storage)
+- Real-time sync with Firestore using onSnapshot
+- Offline-first: changes queue locally and sync when online
+- Use `useLocale` hook for internationalization
+- Legacy `useWords` hook still available for localStorage (deprecated)
 
 ### API Error Handling Pattern
 ```typescript

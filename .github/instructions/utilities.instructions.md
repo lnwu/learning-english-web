@@ -1,6 +1,5 @@
 ---
-paths:
-  - "src/lib/**"
+applyTo: "src/lib/**"
 ---
 
 # Utility Functions Instructions
