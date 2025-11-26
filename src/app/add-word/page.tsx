@@ -179,8 +179,8 @@ const Home = () => {
         <Link href="/">
           <Button type="button">{t('addWord.home')}</Button>
         </Link>
-        <Link href="/all-words">
-          <Button type="button">{t('addWord.viewAll')}</Button>
+        <Link href="/profile">
+          <Button type="button">{t('menu.profile')}</Button>
         </Link>
       </form>
     </main>

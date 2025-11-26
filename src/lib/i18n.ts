@@ -54,6 +54,7 @@ export const translations = {
     'profile.practices': '练习',
     'profile.seconds': '秒',
     'profile.mastery': '熟悉程度',
+    'profile.searchWord': '搜索单词...',
     
     // All Words page
     'allWords.title': '所有单词',
@@ -141,6 +142,7 @@ export const translations = {
     'profile.practices': 'practices',
     'profile.seconds': 's',
     'profile.mastery': 'Mastery',
+    'profile.searchWord': 'Search word...',
     
     // All Words page
     'allWords.title': 'All Words',

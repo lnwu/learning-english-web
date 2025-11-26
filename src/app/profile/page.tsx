@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, ConfirmDialog } from "@/components/ui";
+import { Button, ConfirmDialog, Input } from "@/components/ui";
 import { useFirestoreWords, useLocale, toast } from "@/hooks";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
@@ -15,42 +15,66 @@ const Profile = observer(() => {
   const { locale, setLocale, t } = useLocale();
   const [resetting, setResetting] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  if (loading) {
-    return (
-      <main>
-        <div className="text-center">Loading your profile...</div>
-      </main>
-    );
-  }
+  // Group words by length category
+  const getWordLengthCategory = (word: string): number => {
+    if (word.length <= 5) return 0; // short
+    if (word.length <= 10) return 1; // medium
+    return 2; // long
+  };
 
-  if (error) {
-    return (
-      <main>
-        <div className="text-center text-red-500">Error: {error}</div>
-      </main>
-    );
-  }
-
+  // Calculate statistics directly (MobX will track dependencies)
   const totalWords = words.allWords.size;
   const overallAverageTime = words.getOverallAverageInputTime();
   
-  // Calculate statistics
   const wordsWithTimes: Array<{ word: string; avgTime: number; count: number }> = [];
   words.allWords.forEach((translation, word) => {
     const times = words.getInputTimes(word);
     if (times.length > 0) {
-      const avgTime = times.reduce((sum, t) => sum + t, 0) / times.length;
-      wordsWithTimes.push({ word, avgTime, count: times.length });
+      const avg = times.reduce((sum, t) => sum + t, 0) / times.length;
+      wordsWithTimes.push({ word, avgTime: avg, count: times.length });
     }
   });
 
   // Sort by average time (slowest first)
   wordsWithTimes.sort((a, b) => b.avgTime - a.avgTime);
+
+  const wordsByCategory: Record<number, Array<{ word: string; avgTime: number; count: number }>> = {
+    0: [], // short words
+    1: [], // medium words
+    2: [], // long words
+  };
+
+  wordsWithTimes.forEach((item) => {
+    const category = getWordLengthCategory(item.word);
+    wordsByCategory[category].push(item);
+  });
+
+  // Filter words by search query
+  const getFilteredWordsByCategory = () => {
+    if (!searchQuery.trim()) {
+      return wordsByCategory;
+    }
+    const query = searchQuery.toLowerCase().trim();
+    const filtered: Record<number, Array<{ word: string; avgTime: number; count: number }>> = {
+      0: [],
+      1: [],
+      2: [],
+    };
+    Object.entries(wordsByCategory).forEach(([cat, categoryWords]) => {
+      filtered[Number(cat)] = categoryWords.filter(({ word }) => 
+        word.toLowerCase().includes(query)
+      );
+    });
+    return filtered;
+  };
+
+  const filteredWordsByCategory = getFilteredWordsByCategory();
 
   const handleResetRecords = async () => {
     setResetting(true);
@@ -75,6 +99,22 @@ const Profile = observer(() => {
   const handleLanguageChange = (newLocale: Locale) => {
     setLocale(newLocale);
   };
+
+  if (loading) {
+    return (
+      <main>
+        <div className="text-center">Loading your profile...</div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main>
+        <div className="text-center text-red-500">Error: {error}</div>
+      </main>
+    );
+  }
 
   return (
     isClient && (
@@ -165,67 +205,93 @@ const Profile = observer(() => {
           </div>
         </div>
 
-        {/* Average Speed by Word Length */}
+        {/* Average Speed by Word Length with Word Performance */}
         <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">{t('profile.speedByLength')}</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             {t('profile.speedByLengthDesc')}
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Search Input */}
+          <div className="mb-4">
+            <Input
+              type="text"
+              placeholder={t('profile.searchWord')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full md:w-64"
+            />
+          </div>
+          
+          <div className="space-y-6">
             {[
               { category: 0, labelKey: "profile.shortWords", color: "blue" },
               { category: 1, labelKey: "profile.mediumWords", color: "yellow" },
               { category: 2, labelKey: "profile.longWords", color: "red" }
             ].map(({ category, labelKey, color }) => {
               const avgTime = words.getAverageTimeByLengthCategory(category);
+              const categoryWords = filteredWordsByCategory[category];
               const colorClasses = {
-                blue: "bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300",
-                yellow: "bg-yellow-50 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300",
-                red: "bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-300"
+                blue: {
+                  header: "bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300",
+                  border: "border-blue-200 dark:border-blue-700"
+                },
+                yellow: {
+                  header: "bg-yellow-50 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300",
+                  border: "border-yellow-200 dark:border-yellow-700"
+                },
+                red: {
+                  header: "bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-300",
+                  border: "border-red-200 dark:border-red-700"
+                }
               };
+              const classes = colorClasses[color as keyof typeof colorClasses];
               
               return (
-                <div key={category} className={`p-4 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
-                  <div className="text-2xl font-bold">
-                    {avgTime !== null ? `${avgTime.toFixed(2)}${t('profile.seconds')}` : t('profile.noData')}
+                <div key={category} className={`border rounded-lg overflow-hidden ${classes.border}`}>
+                  {/* Category Header */}
+                  <div className={`p-4 ${classes.header} flex items-center justify-between`}>
+                    <div className="font-semibold">{t(labelKey)}</div>
+                    <div className="text-xl font-bold">
+                      {avgTime !== null ? `${avgTime.toFixed(2)}${t('profile.seconds')}` : t('profile.noData')}
+                    </div>
                   </div>
-                  <div className="text-sm opacity-80 mt-1">{t(labelKey)}</div>
+                  
+                  {/* Words in this category */}
+                  {categoryWords.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto">
+                      {categoryWords.map(({ word, avgTime: wordAvgTime, count }) => (
+                        <div
+                          key={word}
+                          className="flex items-center justify-between p-3 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800"
+                        >
+                          <div className="flex-1">
+                            <span className="font-medium">{word}</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                              ({count} {t('profile.practices')})
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">{wordAvgTime.toFixed(1)}{t('profile.seconds')}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {t('profile.mastery')}: {words.getFrequency(word)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {categoryWords.length === 0 && (
+                    <div className="p-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                      {t('profile.noData')}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
-
-        {/* Word Performance Details */}
-        {wordsWithTimes.length > 0 && (
-          <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">{t('profile.wordPerformance')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {t('profile.wordPerformanceDesc')}
-            </p>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {wordsWithTimes.map(({ word, avgTime, count }) => (
-                <div
-                  key={word}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded"
-                >
-                  <div className="flex-1">
-                    <span className="font-medium">{word}</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                      ({count} {t('profile.practices')})
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{avgTime.toFixed(1)}{t('profile.seconds')}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('profile.mastery')}: {words.getFrequency(word)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* No Data Message */}
         {wordsWithTimes.length === 0 && (
@@ -243,9 +309,6 @@ const Profile = observer(() => {
           </Link>
           <Link href="/add-word">
             <Button variant="outline">{t('addWord.title')}</Button>
-          </Link>
-          <Link href="/all-words">
-            <Button variant="outline">{t('profile.allWords')}</Button>
           </Link>
         </div>
 
