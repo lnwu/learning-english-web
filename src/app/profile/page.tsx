@@ -123,7 +123,7 @@ const Profile = observer(() => {
   if (loading) {
     return (
       <main>
-        <div className="text-center">Loading your profile...</div>
+        <div className="text-center">{t('profile.loading')}</div>
       </main>
     );
   }

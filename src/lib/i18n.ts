@@ -39,6 +39,7 @@ export const translations = {
     
     // Profile page
     'profile.title': '用户资料',
+    'profile.loading': '加载您的资料...',
     'profile.accountInfo': '账户信息',
     'profile.email': '邮箱',
     'profile.name': '姓名',
@@ -147,6 +148,7 @@ export const translations = {
     
     // Profile page
     'profile.title': 'User Profile',
+    'profile.loading': 'Loading your profile...',
     'profile.accountInfo': 'Account Information',
     'profile.email': 'Email',
     'profile.name': 'Name',
