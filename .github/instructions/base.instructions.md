@@ -127,16 +127,17 @@ src/
 │   ├── api/          # API routes (NextAuth)
 │   └── layout.tsx    # Root layout
 ├── components/       # Reusable React components
-│   ├── ui/          # UI primitives (Button, Input, Alert, Dialog, Toast)
+│   ├── ui/          # UI primitives (Button, Input, MasteryBar, Dialog, Toast)
 │   └── auth/        # Authentication components (UserMenu)
 ├── hooks/           # Custom React hooks
-│   ├── useFirestoreWords.ts  # Firestore word management
+│   ├── useFirestoreWords.ts  # Firestore word management with mastery tracking
 │   ├── useLocale.ts  # i18n hook
 │   └── useToast.ts   # Toast notifications
 └── lib/             # Utility functions
     ├── utils.ts     # Helper utilities (cn)
     ├── firebase.ts  # Firebase configuration
     ├── i18n.ts      # Internationalization
+    ├── masteryCalculator.ts  # Word mastery algorithm
     └── syncQueue.ts # Offline sync queue
 ```
 
@@ -196,6 +197,50 @@ Currently, no formal testing framework is configured. When adding tests:
 - Offline-first: changes queue locally and sync when online
 - Use `useLocale` hook for internationalization
 - Legacy `useWords` hook still available for localStorage (deprecated)
+
+### Word Mastery Algorithm
+The mastery system tracks user familiarity with words using a 0-100 score. See `docs/WORD_FAMILIARITY_ALGORITHM.md` for full details.
+
+**Key Files:**
+- `src/lib/masteryCalculator.ts` - Core algorithm implementation
+- `src/components/ui/frequency-bar.tsx` - MasteryBar UI component
+
+**Data Structure (per word):**
+```typescript
+interface WordData {
+  word: string;
+  translation: string;
+  correctCount: number;      // Correct attempts
+  totalAttempts: number;     // Total attempts (correct + incorrect)
+  inputTimes: number[];      // Last 20 input times in seconds
+  lastPracticedAt: Date | null;
+  createdAt: Date;
+}
+```
+
+**Mastery Score Calculation (0-100):**
+- If `totalAttempts === 0`, score is 0 (never practiced)
+- Otherwise: `accuracy * 0.4 + speed * 0.3 + consistency * 0.3`
+  - Accuracy: `(correctCount / totalAttempts) * 100`
+  - Speed: Based on input time vs expected time (`wordLength * 0.3 + 1.0` seconds)
+  - Consistency: Based on variance of last 10 input times
+
+**Mastery Levels:**
+| Score | Level | Color |
+|-------|-------|-------|
+| 0-19 | New | Red |
+| 20-39 | Learning | Orange |
+| 40-59 | Familiar | Yellow |
+| 60-79 | Proficient | Lime |
+| 80-100 | Mastered | Green |
+
+**Practice Priority (word selection):**
+```
+priority = (100 - masteryScore) * recencyMultiplier * practiceCountMultiplier
+```
+- Lower mastery = higher priority
+- Not practiced recently = higher priority
+- New words (never practiced) = highest priority
 
 ### API Error Handling Pattern
 ```typescript
