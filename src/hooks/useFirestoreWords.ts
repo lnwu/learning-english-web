@@ -306,6 +306,32 @@ export const useFirestoreWords = () => {
               };
             });
             words.setWords(wordsData);
+            
+            // Clean up stale sync queue items
+            // If Firestore data matches or exceeds queue data, remove from queue
+            const queue = SyncQueueManager.getQueue();
+            if (queue.length > 0) {
+              const staleIds: string[] = [];
+              queue.forEach((item) => {
+                const firestoreWord = wordsData.find((w) => w.id === item.wordId);
+                if (firestoreWord) {
+                  // If Firestore has same or newer data, this queue item is stale
+                  if (
+                    firestoreWord.totalAttempts >= item.data.totalAttempts &&
+                    firestoreWord.correctCount >= item.data.correctCount
+                  ) {
+                    staleIds.push(item.id);
+                  }
+                }
+              });
+              
+              if (staleIds.length > 0) {
+                const updatedQueue = queue.filter((item) => !staleIds.includes(item.id));
+                SyncQueueManager.saveQueue(updatedQueue);
+                setPendingCount(SyncQueueManager.getUniqueWordCount());
+              }
+            }
+            
             setLoading(false);
             setError(null);
           },
