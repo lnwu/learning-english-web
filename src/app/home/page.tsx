@@ -130,7 +130,7 @@ const Home = observer(() => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Input 
-                    className="w-xs" 
+                    className="w-80" 
                     type="text" 
                     id={word} 
                     ref={(el) => {
