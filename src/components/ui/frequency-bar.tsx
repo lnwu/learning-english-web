@@ -54,7 +54,7 @@ const MasteryBar = React.forwardRef<HTMLDivElement, MasteryBarProps>(
           ))}
         </div>
         {showLabel && (
-          <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+          <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap w-16 text-left">
             {levelLabels[level]}
           </span>
         )}
