@@ -100,7 +100,7 @@ const SentencePractice = observer(() => {
     );
   }
 
-  if (!currentSentence && !wordsLoading) {
+  if (!currentSentence && !wordsLoading && words.allWords.size > 0) {
     return (
       <main className="container mx-auto p-4 max-w-2xl">
         <div className="space-y-4">

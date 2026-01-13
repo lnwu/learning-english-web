@@ -217,12 +217,12 @@ export function checkTranslation(
   for (const word of requiredWords) {
     const normalizedWord = word.toLowerCase();
     
-    // Check if the word (or its variations) appears in the translation
-    // This accepts: conflict, conflicts, conflicted, conflicting, etc.
-    // Use word boundary to avoid false matches (e.g., "conflict" shouldn't match "conflate")
-    const found = normalizedTranslation.includes(normalizedWord);
+    // Use word boundary regex to avoid false positives
+    // Escape special regex characters in the word
+    const escapedWord = normalizedWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp('\\b' + escapedWord, 'i');
     
-    if (!found) {
+    if (!pattern.test(normalizedTranslation)) {
       missingWords.push(word);
     }
   }
