@@ -24,17 +24,12 @@ const SentencePractice = observer(() => {
   const generateNewSentence = () => {
     const allWords = Array.from(words.allWords.keys());
     
-    if (allWords.length < 3) {
+    if (allWords.length === 0) {
       setCurrentSentence(null);
       return;
     }
 
-    // Randomly choose between 3-5 words based on availability
-    const maxWords = Math.min(5, allWords.length);
-    const minWords = 3;
-    const wordCount = Math.floor(Math.random() * (maxWords - minWords + 1)) + minWords;
-
-    const sentence = generateSentence(allWords, wordCount);
+    const sentence = generateSentence(allWords);
     setCurrentSentence(sentence);
     setUserTranslation("");
     setFeedback({ type: null, message: "" });
@@ -46,7 +41,7 @@ const SentencePractice = observer(() => {
   };
 
   useEffect(() => {
-    if (!wordsLoading && words.allWords.size >= 3) {
+    if (!wordsLoading && words.allWords.size > 0) {
       generateNewSentence();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -105,13 +100,13 @@ const SentencePractice = observer(() => {
     );
   }
 
-  if (words.allWords.size < 3) {
+  if (!currentSentence && !wordsLoading) {
     return (
       <main className="container mx-auto p-4 max-w-2xl">
         <div className="space-y-4">
           <h1 className="text-2xl font-bold text-center">{t('sentencePractice.title')}</h1>
           <Alert variant="warning">
-            {t('sentencePractice.noWords')}
+            {t('sentencePractice.noMatchingSentences')}
           </Alert>
           <div className="flex justify-center space-x-2">
             <Link href="/add-word">

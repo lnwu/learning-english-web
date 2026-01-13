@@ -114,8 +114,8 @@ export const translations = {
     
     // Sentence Practice page
     'sentencePractice.title': '造句练习',
-    'sentencePractice.instruction': '请将下面的中文翻译成英文，并使用所有提示的单词',
-    'sentencePractice.words': '使用单词',
+    'sentencePractice.instruction': '请将下面的中文句子翻译成英文',
+    'sentencePractice.words': '需要使用的单词',
     'sentencePractice.chineseSentence': '中文句子',
     'sentencePractice.yourTranslation': '你的翻译',
     'sentencePractice.placeholder': '在这里输入英文翻译...',
@@ -129,6 +129,7 @@ export const translations = {
     'sentencePractice.home': '返回首页',
     'sentencePractice.addWord': '添加单词',
     'sentencePractice.noWords': '词库中没有足够的单词。请先添加至少 3 个单词。',
+    'sentencePractice.noMatchingSentences': '没有找到匹配的练习句子。请添加更多单词，如：complete, create, learn, start, develop, function, test, code, scenario, problem 等。',
     'sentencePractice.goToAddWord': '去添加单词',
     'sentencePractice.exampleTranslation': '参考翻译',
   },
@@ -243,7 +244,7 @@ export const translations = {
     
     // Sentence Practice page
     'sentencePractice.title': 'Sentence Practice',
-    'sentencePractice.instruction': 'Translate the Chinese sentence to English using all the given words',
+    'sentencePractice.instruction': 'Translate the Chinese sentence to English',
     'sentencePractice.words': 'Words to Use',
     'sentencePractice.chineseSentence': 'Chinese Sentence',
     'sentencePractice.yourTranslation': 'Your Translation',
@@ -258,6 +259,7 @@ export const translations = {
     'sentencePractice.home': 'Go Home',
     'sentencePractice.addWord': 'Add Word',
     'sentencePractice.noWords': 'Not enough words in your vocabulary. Please add at least 3 words first.',
+    'sentencePractice.noMatchingSentences': 'No matching practice sentences found. Please add more words such as: complete, create, learn, start, develop, function, test, code, scenario, problem, etc.',
     'sentencePractice.goToAddWord': 'Go to Add Word',
     'sentencePractice.exampleTranslation': 'Example Translation',
   },
