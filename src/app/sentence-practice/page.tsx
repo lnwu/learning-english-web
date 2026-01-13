@@ -62,24 +62,22 @@ const SentencePractice = observer(() => {
     setIsChecking(true);
 
     // Check if translation contains all required words
-    setTimeout(() => {
-      const result = checkTranslation(userTranslation, currentSentence.words);
+    const result = checkTranslation(userTranslation, currentSentence.words);
 
-      if (result.success) {
-        setFeedback({
-          type: "success",
-          message: t('sentencePractice.correct'),
-        });
-      } else {
-        setFeedback({
-          type: "error",
-          message: t('sentencePractice.incorrect'),
-          missingWords: result.missingWords,
-        });
-      }
+    if (result.success) {
+      setFeedback({
+        type: "success",
+        message: t('sentencePractice.correct'),
+      });
+    } else {
+      setFeedback({
+        type: "error",
+        message: t('sentencePractice.incorrect'),
+        missingWords: result.missingWords,
+      });
+    }
 
-      setIsChecking(false);
-    }, 300);
+    setIsChecking(false);
   };
 
   const handleNext = () => {

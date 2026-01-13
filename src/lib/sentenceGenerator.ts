@@ -152,8 +152,12 @@ export function generateSentence(words: string[], count: number = 3): GeneratedS
   // Select a random template
   const template = matchingTemplates[Math.floor(Math.random() * matchingTemplates.length)];
 
-  // Shuffle and select random words
-  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  // Use Fisher-Yates shuffle for proper randomization
+  const shuffled = [...words];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   const selectedWords = shuffled.slice(0, count);
 
   // Replace placeholders with words
@@ -188,9 +192,9 @@ export function checkTranslation(
 
   for (const word of requiredWords) {
     const normalizedWord = word.toLowerCase();
-    // Check if the word appears as a whole word (not as part of another word)
-    const wordRegex = new RegExp(`\\b${normalizedWord}\\b`, 'i');
-    if (!wordRegex.test(normalizedTranslation)) {
+    // Use simple word boundary check for efficiency
+    const pattern = `\\b${normalizedWord}\\b`;
+    if (!normalizedTranslation.match(new RegExp(pattern, 'i'))) {
       missingWords.push(word);
     }
   }
