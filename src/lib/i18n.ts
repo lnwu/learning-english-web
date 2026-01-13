@@ -111,6 +111,26 @@ export const translations = {
     // Legacy mastery levels (for backwards compatibility)
     'mastery.notMastered': '未掌握',
     'mastery.beginner': '初学',
+    
+    // Sentence Practice page
+    'sentencePractice.title': '造句练习',
+    'sentencePractice.instruction': '请将下面的中文翻译成英文，并使用所有提示的单词',
+    'sentencePractice.words': '使用单词',
+    'sentencePractice.chineseSentence': '中文句子',
+    'sentencePractice.yourTranslation': '你的翻译',
+    'sentencePractice.placeholder': '在这里输入英文翻译...',
+    'sentencePractice.submit': '提交',
+    'sentencePractice.next': '下一题',
+    'sentencePractice.checking': '检查中...',
+    'sentencePractice.correct': '正确！所有单词都已使用。',
+    'sentencePractice.incorrect': '请检查你的翻译',
+    'sentencePractice.missingWords': '缺少单词',
+    'sentencePractice.extraInfo': '提示：确保使用所有提示的单词',
+    'sentencePractice.home': '返回首页',
+    'sentencePractice.addWord': '添加单词',
+    'sentencePractice.noWords': '词库中没有足够的单词。请先添加至少 3 个单词。',
+    'sentencePractice.goToAddWord': '去添加单词',
+    'sentencePractice.exampleTranslation': '参考翻译',
   },
   en: {
     // Common
@@ -220,6 +240,26 @@ export const translations = {
     // Legacy mastery levels (for backwards compatibility)
     'mastery.notMastered': 'Not Mastered',
     'mastery.beginner': 'Beginner',
+    
+    // Sentence Practice page
+    'sentencePractice.title': 'Sentence Practice',
+    'sentencePractice.instruction': 'Translate the Chinese sentence to English using all the given words',
+    'sentencePractice.words': 'Words to Use',
+    'sentencePractice.chineseSentence': 'Chinese Sentence',
+    'sentencePractice.yourTranslation': 'Your Translation',
+    'sentencePractice.placeholder': 'Type your English translation here...',
+    'sentencePractice.submit': 'Submit',
+    'sentencePractice.next': 'Next Question',
+    'sentencePractice.checking': 'Checking...',
+    'sentencePractice.correct': 'Correct! All words are used.',
+    'sentencePractice.incorrect': 'Please check your translation',
+    'sentencePractice.missingWords': 'Missing words',
+    'sentencePractice.extraInfo': 'Hint: Make sure to use all the given words',
+    'sentencePractice.home': 'Go Home',
+    'sentencePractice.addWord': 'Add Word',
+    'sentencePractice.noWords': 'Not enough words in your vocabulary. Please add at least 3 words first.',
+    'sentencePractice.goToAddWord': 'Go to Add Word',
+    'sentencePractice.exampleTranslation': 'Example Translation',
   },
 };
 

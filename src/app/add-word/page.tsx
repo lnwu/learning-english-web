@@ -179,6 +179,9 @@ const Home = () => {
         <Link href="/">
           <Button type="button">{t('addWord.home')}</Button>
         </Link>
+        <Link href="/sentence-practice">
+          <Button type="button" variant="outline">{t('sentencePractice.title')}</Button>
+        </Link>
         <Link href="/profile">
           <Button type="button">{t('menu.profile')}</Button>
         </Link>

@@ -8,6 +8,9 @@ const alertVariants = cva("relative w-full rounded-lg border px-4 py-3 text-sm g
     variant: {
       default: "bg-card text-card-foreground",
       destructive: "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
+      success: "bg-green-50 text-green-900 border-green-200",
+      error: "bg-red-50 text-red-900 border-red-200",
+      warning: "bg-yellow-50 text-yellow-900 border-yellow-200",
     },
   },
   defaultVariants: {
