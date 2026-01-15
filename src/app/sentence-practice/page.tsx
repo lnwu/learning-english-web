@@ -100,13 +100,13 @@ const SentencePractice = observer(() => {
     );
   }
 
-  if (!currentSentence && !wordsLoading && words.allWords.size > 0) {
+  if (words.allWords.size === 0 && !wordsLoading) {
     return (
       <main className="container mx-auto p-4 max-w-2xl">
         <div className="space-y-4">
           <h1 className="text-2xl font-bold text-center">{t('sentencePractice.title')}</h1>
           <Alert variant="warning">
-            {t('sentencePractice.noMatchingSentences')}
+            {t('sentencePractice.noWords')}
           </Alert>
           <div className="flex justify-center space-x-2">
             <Link href="/add-word">
