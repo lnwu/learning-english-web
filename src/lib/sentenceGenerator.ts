@@ -1,6 +1,9 @@
 // Sentence template generator for sentence practice
 // Supports both pre-made sentence pairs and flexible templates
 
+// Configuration
+const FIXED_SENTENCE_PROBABILITY = 0.3; // 30% chance to use fixed sentences when available
+
 interface SentenceTemplate {
   chinese: string;           // Chinese sentence (may contain {word} placeholders)
   english: string;           // English translation (may contain {word} placeholders)
@@ -129,7 +132,8 @@ function findMatchingFixedSentences(availableWords: string[]): SentenceTemplate[
   const normalizedVocab = availableWords.map(w => w.toLowerCase());
   
   return fixedSentences.filter(template => {
-    return template.requiredWords!.every(word => 
+    const requiredWords = template.requiredWords || [];
+    return requiredWords.every(word => 
       normalizedVocab.includes(word.toLowerCase())
     );
   });
@@ -188,14 +192,15 @@ export function generateSentence(availableWords: string[]): GeneratedSentence | 
     return null;
   }
 
-  // Try to find a matching fixed sentence first (30% chance if available)
+  // Try to find a matching fixed sentence first
   const matchingFixed = findMatchingFixedSentences(availableWords);
   
-  if (matchingFixed.length > 0 && Math.random() < 0.3) {
+  if (matchingFixed.length > 0 && Math.random() < FIXED_SENTENCE_PROBABILITY) {
     const template = matchingFixed[Math.floor(Math.random() * matchingFixed.length)];
+    const requiredWords = template.requiredWords || [];
     
     // Find the actual words from user's vocabulary (preserve case)
-    const wordsToUse = template.requiredWords!.map(requiredWord => {
+    const wordsToUse = requiredWords.map(requiredWord => {
       return availableWords.find(w => w.toLowerCase() === requiredWord.toLowerCase()) || requiredWord;
     });
 
@@ -228,8 +233,8 @@ export function checkTranslation(
     const normalizedWord = word.toLowerCase();
     
     // Use word boundary regex to avoid false positives
-    // Escape special regex characters in the word
-    const escapedWord = normalizedWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Escape special regex characters including hyphen
+    const escapedWord = normalizedWord.replace(/[.*+?^${}()|[\]\\/\-]/g, '\\$&');
     const pattern = new RegExp('\\b' + escapedWord, 'i');
     
     if (!pattern.test(normalizedTranslation)) {
