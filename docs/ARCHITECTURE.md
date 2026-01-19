@@ -33,7 +33,8 @@ Learning English is a client-side web application built with Next.js 15, using t
 - **Radix UI**: Accessible component primitives
 
 ### Storage
-- **LocalStorage**: Browser-based persistent storage
+- **Firebase Firestore**: Cloud storage with offline sync queue
+- **LocalStorage (Legacy)**: Migration source via `useWords`
 
 ## Application Architecture
 
@@ -46,7 +47,8 @@ Learning English is a client-side web application built with Next.js 15, using t
 │  │  │  Pages (Server Components)              │  │  │
 │  │  │  - /home                                 │  │  │
 │  │  │  - /add-word                             │  │  │
-│  │  │  - /all-words                            │  │  │
+│  │  │  - /profile                              │  │  │
+│  │  │  - /login                                │  │  │
 │  │  └─────────────────────────────────────────┘  │  │
 │  │  ┌─────────────────────────────────────────┐  │  │
 │  │  │  Client Components                      │  │  │
@@ -61,8 +63,9 @@ Learning English is a client-side web application built with Next.js 15, using t
 │  │  - User inputs                                │  │
 │  └───────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────┐  │
-│  │           LocalStorage                        │  │
+│  │     Firebase Firestore + Offline Queue        │  │
 │  │  - Persistent word storage                    │  │
+│  │  - Sync queue for offline changes             │  │
 │  └───────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────┘
                          │
@@ -104,24 +107,17 @@ class Words {
 
 ### React Hooks Integration
 
-The `useWords` hook bridges MobX state with React components:
+The `useFirestoreWords` hook bridges MobX state with Firestore sync:
 
 ```typescript
-export const useWords = () => {
-  const [storedWords, setStoredWords] = useLocalStorage<[string, string][]>("words", []);
+import { useFirestoreWords } from "@/hooks";
 
-  useEffect(() => {
-    if (storedWords && words.wordTranslations.size === 0) {
-      words.setWords(storedWords);
-    }
-  }, [storedWords]);
+const Component = () => {
+  const { words, addWord, deleteWord, loading, syncing, pendingCount } =
+    useFirestoreWords();
 
-  const addWord = (word: string, translation: string) => {
-    words.addWord(word, translation);
-    setStoredWords(Array.from(words.wordTranslations.entries()));
-  };
-
-  return { words, addWord, deleteWord, removeAllWords };
+  // Words are synced via Firestore onSnapshot with offline queue support
+  return null;
 };
 ```
 
@@ -143,20 +139,20 @@ Fetch Translation (Google Translate)
 Fetch Definition (Dictionary API)
     ↓
 Combine Translation + Definition
-    ↓
+  ↓
 Update MobX Store
-    ↓
-Sync to LocalStorage
-    ↓
+  ↓
+Sync to Firestore (offline queue when needed)
+  ↓
 Update UI
 ```
 
 ### Practicing Words
 
 ```
-Load from LocalStorage
-    ↓
-Initialize MobX Store
+Load from Firestore (onSnapshot)
+  ↓
+Initialize MobX Store (with optional local migration)
     ↓
 Get Random Words (max 5)
     ↓
@@ -186,8 +182,8 @@ src/app/
 │   └── page.tsx         # Practice interface
 ├── add-word/
 │   └── page.tsx         # Add new words
-└── all-words/
-    └── page.tsx         # View all words
+└── profile/
+  └── page.tsx         # User profile & stats
 ```
 
 ### UI Components
@@ -214,42 +210,36 @@ interface AlertProps {
 
 Located in `src/hooks/`:
 
-- `useWords`: Word management and persistence
-- Built on `react-use` library hooks like `useLocalStorage`
+- `useFirestoreWords`: Word management and Firestore sync (primary)
+- `useWords`: LocalStorage-only legacy hook
 
 ## Storage Strategy
 
-### LocalStorage Schema
+### Firestore Schema (Primary)
 
 ```typescript
-// Key: "words"
-// Value: JSON array of [word, translation] tuples
-[
-  ["hello", "Used as a greeting or to begin a phone conversation\n你好"],
-  ["world", "The earth, together with all of its countries and peoples\n世界"],
-  // ...
-]
+interface WordData {
+  word: string;
+  translation: string;
+  correctCount: number;
+  totalAttempts: number;
+  inputTimes: number[];
+  lastPracticedAt: Date | null;
+  createdAt: Date;
+  id: string;
+}
 ```
 
-### Storage Operations
+### Offline Sync
 
-**Save**:
-```typescript
-const saveWords = (words: Map<string, string>) => {
-  const wordsArray = Array.from(words.entries());
-  localStorage.setItem("words", JSON.stringify(wordsArray));
-};
-```
+- Changes are queued locally when offline
+- The queue syncs once connectivity is restored
+- Use `pendingCount` and `syncing` for UI feedback
 
-**Load**:
-```typescript
-const loadWords = (): Map<string, string> => {
-  const stored = localStorage.getItem("words");
-  if (!stored) return new Map();
-  const parsed = JSON.parse(stored);
-  return new Map(parsed);
-};
-```
+### LocalStorage (Legacy)
+
+- Kept for migration and local-only usage
+- See the migration flow in docs/MIGRATION_GUIDE.md
 
 ## Design Patterns
 
@@ -259,7 +249,7 @@ MobX implements the observer pattern, allowing components to reactively update w
 
 ```typescript
 const Home = observer(() => {
-  const { words } = useWords();
+  const { words } = useFirestoreWords();
   
   // Component re-renders when words.wordTranslations changes
   return <div>{words.wordTranslations.size} words</div>;
@@ -271,9 +261,9 @@ const Home = observer(() => {
 Encapsulates complex logic in reusable hooks:
 
 ```typescript
-export const useWords = () => {
-  // Logic for word management
-  return { words, addWord, deleteWord };
+export const useFirestoreWords = () => {
+  // Logic for word management and Firestore sync
+  return { words, addWord, deleteWord, loading };
 };
 ```
 
@@ -294,9 +284,9 @@ Centralized data access through the Words class:
 
 ```typescript
 class Words {
-  // Centralized storage operations
+  // Centralized access to word data
   get allWords() {
-    return this.loadFromStorage();
+    return this.wordData;
   }
 }
 ```
@@ -323,15 +313,18 @@ learning-english/
 │   │   ├── page.tsx            # Root page (redirect)
 │   │   ├── home/               # Practice page
 │   │   ├── add-word/           # Add word page
-│   │   └── all-words/          # View words page
+│   │   ├── profile/            # User profile & stats
+│   │   └── login/              # Authentication page
 │   ├── components/             # Reusable components
+│   │   ├── auth/               # Auth components
 │   │   └── ui/                 # UI primitives
 │   │       ├── button.tsx
 │   │       ├── input.tsx
 │   │       └── alert.tsx
 │   ├── hooks/                  # Custom hooks
 │   │   ├── index.ts            # Hook exports
-│   │   └── useWords.ts         # Word management
+│   │   ├── useFirestoreWords.ts # Word management (primary)
+│   │   └── useWords.ts         # Word management (legacy)
 │   └── lib/                    # Utilities
 │       └── utils.ts            # Helper functions
 ├── docs/                       # Documentation
@@ -346,7 +339,7 @@ learning-english/
 1. **Client-Side Rendering**: Pages use "use client" directive for interactivity
 2. **Lazy Loading**: Components load on demand
 3. **Memoization**: MobX computed values cache results
-4. **Local Storage**: Reduces API calls by caching data
+4. **Offline Sync Queue**: Captures updates while offline and syncs later
 
 ### Bundle Size
 
@@ -365,8 +358,8 @@ learning-english/
 
 ### Current Limitations
 
-- LocalStorage limited to ~5-10MB
-- Client-side only (no server-side persistence)
+- Firestore quotas and rate limits apply
+- Translation API is unofficial and may be unstable
 - Single language pair (English to Chinese)
 
 ### Future Enhancements
@@ -374,7 +367,7 @@ learning-english/
 To scale the application:
 
 1. **Database Backend**: Add PostgreSQL/MongoDB for storage
-2. **User Authentication**: Implement user accounts
+2. **Batch Operations**: Add background processing for large migrations
 3. **API Rate Limiting**: Add request throttling
 4. **Caching Layer**: Implement Redis for API responses
 5. **Multi-language Support**: Extend translation capabilities

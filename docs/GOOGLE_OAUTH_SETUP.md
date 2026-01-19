@@ -2,6 +2,27 @@
 
 This guide will walk you through setting up Google OAuth authentication for the Learning English application.
 
+## Quick Start (5 minutes)
+
+1. **Create OAuth credentials** in Google Cloud Console (Web application)
+   - Authorized JavaScript origins: `http://localhost:3000`
+   - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`
+2. **Copy env template** and fill credentials:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. **Generate secret**:
+   ```bash
+   openssl rand -base64 32
+   ```
+4. **Set env vars** in `.env.local`:
+   - `AUTH_SECRET`
+   - `AUTH_GOOGLE_ID`
+   - `AUTH_GOOGLE_SECRET`
+
+**Note:** NextAuth.js v5 auto-detects `http://localhost:3000` in development.
+Set `NEXTAUTH_URL` only for production or proxy setups.
+
 ## Prerequisites
 
 - A Google account

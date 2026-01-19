@@ -21,8 +21,7 @@ Your Learning English application now has Google OAuth authentication! Users mus
 - ✅ `src/app/layout.tsx` - Updated with session provider
 - ✅ `next.config.ts` - Image optimization for Google profiles
 - ✅ `.env.example` - Environment variable template
-- ✅ `docs/GOOGLE_OAUTH_SETUP.md` - Detailed setup guide
-- ✅ `docs/QUICK_START_OAUTH.md` - 5-minute quick start
+- ✅ `docs/GOOGLE_OAUTH_SETUP.md` - Setup guide (includes Quick Start)
 - ✅ `docs/AUTHENTICATION_IMPLEMENTATION.md` - Technical documentation
 - ✅ `README.md` - Updated with auth information
 
@@ -101,9 +100,6 @@ You should see:
 
 ## 📖 Documentation
 
-### For Quick Setup (5 minutes):
-Read: `docs/QUICK_START_OAUTH.md`
-
 ### For Detailed Instructions:
 Read: `docs/GOOGLE_OAUTH_SETUP.md`
 
@@ -163,16 +159,16 @@ When you're ready to deploy:
 - User profile displayed in header
 - Can sign out anytime
 - Session persists across visits
-- Data still stored locally (can be enhanced for cloud storage)
+- Data stored in Firestore with offline sync queue
 
 ## 🎯 Next Steps (Optional Enhancements)
 
 Consider these future improvements:
 
-1. **Cloud Storage**: Move vocabulary from localStorage to database
-   - Sync across devices
-   - Backup and restore
-   - Associate words with user ID
+1. **Firestore Enhancements**:
+   - Add exports/backups
+   - Improve offline conflict handling
+   - Add analytics dashboards
 
 2. **Additional Auth Providers**:
    - GitHub

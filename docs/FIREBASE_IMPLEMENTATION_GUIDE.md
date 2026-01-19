@@ -2,6 +2,20 @@
 
 This is a step-by-step practical guide to implement Firebase Firestore in the Learning English app.
 
+## Why Firestore (Recommended)
+
+- **Free tier**: 1GB storage, 50K reads/day, 20K writes/day
+- **Real-time sync** across devices
+- **No backend** required
+- **Fits current data model** (word documents per user)
+
+### Alternatives (Not Recommended)
+
+| Option | Best For | Notes |
+| --- | --- | --- |
+| Cloud Storage | File backups/exports | Requires backend API |
+| Cloud SQL | Complex relational queries | No free tier, higher cost |
+
 ## Prerequisites
 
 - Existing Learning English app with Google OAuth already configured

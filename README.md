@@ -9,7 +9,7 @@ A modern web application designed to help users learn English vocabulary through
 - **Word Validation**: Validates words using dictionary API to ensure they're real English words
 - **Interactive Practice**: Quiz-style interface to practice your vocabulary
 - **Audio Pronunciation**: Listen to word pronunciations with text-to-speech
-- **Persistent Storage**: All words are saved locally in your browser
+- **Cloud Storage**: Firebase Firestore with offline sync queue
 - **Word Management**: View, add, and delete words from your collection
 - **Smart Translations**: Combines English definitions with Chinese translations
 
@@ -99,12 +99,15 @@ learning-english/
 │   ├── app/              # Next.js app directory
 │   │   ├── home/         # Main practice page
 │   │   ├── add-word/     # Add new words page
-│   │   ├── all-words/    # View all words page
+│   │   ├── profile/      # User profile & stats
+│   │   ├── login/        # Authentication page
 │   │   └── layout.tsx    # Root layout
 │   ├── components/       # React components
-│   │   └── ui/          # UI components (Button, Input, Alert)
+│   │   ├── auth/         # Auth UI (UserMenu)
+│   │   └── ui/           # UI components (Button, Input, Alert)
 │   ├── hooks/           # Custom React hooks
-│   │   └── useWords.ts  # Word management hook
+│   │   ├── useFirestoreWords.ts  # Word management (primary)
+│   │   └── useWords.ts           # LocalStorage (legacy)
 │   └── lib/             # Utility functions
 ├── public/              # Static assets
 └── package.json         # Project dependencies
@@ -149,20 +152,16 @@ Result:
 
 - **View All Words**: See your complete vocabulary list
 - **Delete Words**: Remove words you no longer want to practice
-- **Persistent Storage**: Words are saved in browser localStorage
-- **Cloud Storage Option**: Optional Firebase Firestore integration for cross-device sync (see [Cloud Storage Guide](docs/GOOGLE_CLOUD_QUICK_REFERENCE.md))
-- **Migration Tool**: Easily migrate existing localStorage data to Firestore (see [Migration Guide](docs/MIGRATION_GUIDE.md))
+- **Cloud Storage**: Words are stored in Firebase Firestore with offline sync queue
+- **LocalStorage (Legacy)**: `useWords` remains for local-only usage
+- **Migration Tool**: Migrate localStorage data to Firestore (see [Migration Guide](docs/MIGRATION_GUIDE.md))
 
-## Cloud Storage (Optional)
+## Cloud Storage
 
-Want to sync your words across devices? Check out our Google Cloud storage guides:
+Want to sync your words across devices? Use Firebase Firestore:
 
-- **[Quick Reference](docs/GOOGLE_CLOUD_QUICK_REFERENCE.md)** - Compare all options (2 min read)
 - **[Firebase Firestore Guide](docs/FIREBASE_IMPLEMENTATION_GUIDE.md)** - Step-by-step setup (Recommended, ~45 min)
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Move your existing words to the cloud (5 min) ⭐ NEW
-- **[Detailed Options](docs/GOOGLE_CLOUD_STORAGE_OPTIONS.md)** - All Google Cloud solutions
-
-**TL;DR**: Use Firebase Firestore (free, real-time sync, easy setup)
 
 ## API Integration
 
@@ -178,13 +177,13 @@ The application uses two external APIs:
 
 ## Code Examples
 
-### Using the useWords Hook
+### Using the useFirestoreWords Hook
 
 ```typescript
-import { useWords } from "@/hooks";
+import { useFirestoreWords } from "@/hooks";
 
 function MyComponent() {
-  const { words, addWord, deleteWord, removeAllWords } = useWords();
+  const { words, addWord, deleteWord } = useFirestoreWords();
   
   // Add a new word
   addWord("example", "an example definition\n例子");
@@ -250,7 +249,7 @@ ESLint is configured with Next.js recommended rules in `eslint.config.mjs`.
 ## Browser Compatibility
 
 - Modern browsers with ES6+ support
-- LocalStorage API required
+- LocalStorage API required for offline sync queue
 - Web Speech API for pronunciation (optional)
 
 ## Troubleshooting
@@ -271,7 +270,8 @@ ESLint is configured with Next.js recommended rules in `eslint.config.mjs`.
 
 ### Issue: Words not saving
 
-**Solution**: Ensure LocalStorage is enabled in your browser and you're not in incognito/private mode.
+**Solution**: Ensure you are signed in, Firebase is configured, and LocalStorage
+is enabled for the offline sync queue (avoid incognito/private mode).
 
 ### Issue: Translation not working
 
@@ -294,10 +294,8 @@ npm run build
 
 Additional documentation available in the `docs/` folder:
 
-- **[Google Cloud Quick Reference](docs/GOOGLE_CLOUD_QUICK_REFERENCE.md)** - Compare storage options
 - **[Firebase Implementation Guide](docs/FIREBASE_IMPLEMENTATION_GUIDE.md)** - Step-by-step Firestore setup
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** - Migrate localStorage data to Firestore ⭐ NEW
-- **[Google Cloud Storage Options](docs/GOOGLE_CLOUD_STORAGE_OPTIONS.md)** - Detailed comparison of all options
 - **[Google OAuth Setup](docs/GOOGLE_OAUTH_SETUP.md)** - Authentication setup guide
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical architecture documentation
 
