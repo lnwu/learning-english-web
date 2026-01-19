@@ -36,6 +36,11 @@ export const translations = {
     'home.submit': '提交',
     'home.hint': '提示',
     'home.correct': '正确！',
+    'home.editTranslationHint': '双击编辑中文翻译',
+    'home.addChineseTranslation': '双击添加中文翻译',
+    'home.translationUpdated': '中文翻译已更新',
+    'home.translationEmpty': '中文翻译不能为空',
+    'home.translationUpdateFailed': '更新翻译失败，请重试',
     
     // Profile page
     'profile.title': '用户资料',
@@ -145,6 +150,11 @@ export const translations = {
     'home.submit': 'Submit',
     'home.hint': 'Hint',
     'home.correct': 'Correct!',
+    'home.editTranslationHint': 'Double-click to edit Chinese translation',
+    'home.addChineseTranslation': 'Double-click to add Chinese translation',
+    'home.translationUpdated': 'Chinese translation updated',
+    'home.translationEmpty': 'Chinese translation cannot be empty',
+    'home.translationUpdateFailed': 'Failed to update translation. Please try again.',
     
     // Profile page
     'profile.title': 'User Profile',

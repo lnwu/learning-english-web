@@ -4,17 +4,32 @@ import { Input, Button, MasteryBar, SyncIndicator } from "@/components/ui";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
-import { useFirestoreWords, useLocale } from "@/hooks";
+import { useFirestoreWords, useLocale, toast } from "@/hooks";
 
 const Home = observer(() => {
-  const { words, recordCorrectAttempt, recordIncorrectAttempt, syncToFirestore, syncing, pendingCount, loading, error } = useFirestoreWords();
+  const { words, recordCorrectAttempt, recordIncorrectAttempt, syncToFirestore, syncing, pendingCount, loading, error, updateTranslation } = useFirestoreWords();
   const { t } = useLocale();
   const [isClient, setIsClient] = useState(false);
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const [randomWords, setRandomWords] = useState<[string, string][]>([]);
+  const [editingWord, setEditingWord] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const incorrectRecordedRef = useRef<Set<string>>(new Set());
   const timerStartRef = useRef<Map<string, number>>(new Map());
+  const editSessionRef = useRef<{
+    word: string | null;
+    originalChinese: string;
+    englishDefinition: string;
+    committed: boolean;
+  }>(
+    {
+      word: null,
+      originalChinese: "",
+      englishDefinition: "",
+      committed: false,
+    }
+  );
 
   useEffect(() => {
     setIsClient(true);
@@ -47,6 +62,103 @@ const Home = observer(() => {
     timerStartRef.current.clear();
     setRandomWords(words.getRandomWords());
     setShouldFocusFirst(true);
+  };
+
+  const parseTranslation = (translation: string) => {
+    const segments = translation
+      .split("\n")
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+
+    if (segments.length === 0) {
+      return { englishDefinition: "", chineseTranslation: "" };
+    }
+
+    if (segments.length === 1) {
+      const single = segments[0];
+      const hasChinese = /[\u4e00-\u9fff]/.test(single);
+      return hasChinese
+        ? { englishDefinition: "", chineseTranslation: single }
+        : { englishDefinition: single, chineseTranslation: "" };
+    }
+
+    return {
+      englishDefinition: segments[0],
+      chineseTranslation: segments.slice(1).join("\n"),
+    };
+  };
+
+  const startEditingTranslation = (
+    word: string,
+    englishDefinition: string,
+    chineseTranslation: string
+  ) => {
+    setEditingWord(word);
+    setEditingValue(chineseTranslation);
+    editSessionRef.current = {
+      word,
+      originalChinese: chineseTranslation,
+      englishDefinition,
+      committed: false,
+    };
+  };
+
+  const cancelEditingTranslation = () => {
+    setEditingWord(null);
+    setEditingValue("");
+    editSessionRef.current = {
+      word: null,
+      originalChinese: "",
+      englishDefinition: "",
+      committed: false,
+    };
+  };
+
+  const commitEditingTranslation = async () => {
+    const session = editSessionRef.current;
+    if (!session.word || session.committed) {
+      return;
+    }
+
+    const trimmed = editingValue.trim();
+    if (!trimmed) {
+      toast({
+        title: t("home.translationEmpty"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (trimmed === session.originalChinese) {
+      cancelEditingTranslation();
+      return;
+    }
+
+    session.committed = true;
+
+    try {
+      const newTranslation = session.englishDefinition
+        ? `${session.englishDefinition}\n${trimmed}`
+        : trimmed;
+      await updateTranslation(session.word, newTranslation);
+      setRandomWords((prev) =>
+        prev.map(([itemWord, itemTranslation]) =>
+          itemWord === session.word ? [itemWord, newTranslation] : [itemWord, itemTranslation]
+        )
+      );
+      toast({
+        title: t("home.translationUpdated"),
+        variant: "success",
+      });
+      cancelEditingTranslation();
+    } catch (err) {
+      console.error("Failed to update translation:", err);
+      session.committed = false;
+      toast({
+        title: t("home.translationUpdateFailed"),
+        variant: "destructive",
+      });
+    }
   };
 
   const isCorrect = () => {
@@ -107,26 +219,63 @@ const Home = observer(() => {
         <ul className="space-y-2">
           {randomWords.map(([word, translation]) => {
             const inputValue = words.userInputs.get(word) || "";
-            const segments = translation.split("\n").filter(Boolean);
-            let englishDefinition = "";
-            let chineseTranslation = "";
-
-            if (segments.length > 1) {
-              [englishDefinition, chineseTranslation] = segments;
-            } else if (segments.length === 1) {
-              englishDefinition = segments[0];
-            }
-
-            const displayLines = chineseTranslation ? [chineseTranslation] : [];
-            if (englishDefinition) {
-              displayLines.push(englishDefinition);
-            }
-            const displayTranslation = displayLines.join("\n");
+            const { englishDefinition, chineseTranslation } = parseTranslation(translation);
+            const isEditingTranslation = editingWord === word;
 
             return (
-              <li key={word} className="flex items-center space-x-2">
-                <div className="grow max-w-xs text-right relative">
-                  <strong className="whitespace-pre-line">{displayTranslation}</strong>
+              <li key={word} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1">
+                <div className="max-w-xs w-full text-right justify-self-end">
+                  {isEditingTranslation ? (
+                    <Input
+                      className="w-full text-right"
+                      type="text"
+                      value={editingValue}
+                      autoFocus
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onBlur={() => {
+                        commitEditingTranslation();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (e.nativeEvent.isComposing) {
+                            return;
+                          }
+                          e.preventDefault();
+                          commitEditingTranslation();
+                        }
+
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          cancelEditingTranslation();
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className={`h-9 px-3 py-1 flex items-center justify-end whitespace-pre-line ${chineseTranslation ? "font-semibold" : "text-gray-400 italic"} cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:rounded`}
+                      onDoubleClick={() =>
+                        startEditingTranslation(
+                          word,
+                          englishDefinition,
+                          chineseTranslation
+                        )
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          startEditingTranslation(
+                            word,
+                            englishDefinition,
+                            chineseTranslation
+                          );
+                        }
+                      }}
+                      tabIndex={0}
+                      title={t("home.editTranslationHint")}
+                    >
+                      {chineseTranslation || t("home.addChineseTranslation")}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <Input 
@@ -211,6 +360,12 @@ const Home = observer(() => {
                   </span>
                   <MasteryBar score={words.getMasteryScore(word)} />
                 </div>
+                {englishDefinition && (
+                  <div className="max-w-xs w-full text-right text-sm text-gray-500 whitespace-pre-line justify-self-end">
+                    {englishDefinition}
+                  </div>
+                )}
+                {englishDefinition && <div />}
               </li>
             );
           })}

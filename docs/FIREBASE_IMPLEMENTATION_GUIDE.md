@@ -702,6 +702,8 @@ Firestore Database
             └── ...
 ```
 
+**Translation format:** `translation` stores the English definition and Chinese translation separated by a newline, e.g. `English definition\n中文`. The Chinese portion can be edited inline on the practice page (double-click), and empty values after `trim()` are rejected.
+
 ## Benefits You'll Get
 
 ✅ **Sync across devices** - Access your words on phone, tablet, laptop

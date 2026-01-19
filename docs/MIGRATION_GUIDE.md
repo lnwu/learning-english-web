@@ -243,6 +243,8 @@ localStorage["words"] = JSON.stringify([
 ]);
 ```
 
+Note: `translation` combines the English definition and Chinese translation with a newline (`English definition\n中文`). The practice page allows inline editing of the Chinese part via double-click, and empty values after `trim()` are not allowed.
+
 ### After Migration (Firestore)
 
 ```

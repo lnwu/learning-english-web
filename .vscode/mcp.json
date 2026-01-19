@@ -8,6 +8,12 @@
 				"firebase-tools@latest",
 				"mcp"
 			]
+		},
+		"browsermcp": {
+			"command": "npx",
+			"args": [
+				"@browsermcp/mcp@latest"
+			]
 		}
 	},
 	"inputs": []

@@ -188,6 +188,12 @@ class Words {
     return this.wordData.get(word)?.translation;
   }
 
+  updateTranslation(word: string, translation: string) {
+    const data = this.wordData.get(word);
+    if (!data) return;
+    data.translation = translation;
+  }
+
   setUserInput(word: string, value: string) {
     this.userInputs.set(word, value);
   }
@@ -398,6 +404,32 @@ export const useFirestoreWords = () => {
     } catch (err) {
       console.error("Failed to delete word:", err);
       throw new Error("Failed to delete word from cloud");
+    }
+  };
+
+  const updateTranslation = async (word: string, translation: string) => {
+    if (!session?.user?.email) {
+      throw new Error("User not authenticated");
+    }
+
+    const wordId = words.getWordId(word);
+    if (!wordId) {
+      throw new Error("Word not found");
+    }
+
+    try {
+      await ensureFirebaseAuth(session.user.email);
+
+      const userId = session.user.email;
+      const wordDocRef = doc(db, "users", userId, "words", wordId);
+      await updateDoc(wordDocRef, {
+        translation,
+      });
+
+      words.updateTranslation(word, translation);
+    } catch (err) {
+      console.error("Failed to update translation:", err);
+      throw new Error("Failed to update translation");
     }
   };
 
@@ -660,6 +692,7 @@ export const useFirestoreWords = () => {
     words,
     addWord,
     deleteWord,
+    updateTranslation,
     removeAllWords,
     recordCorrectAttempt,
     recordIncorrectAttempt,

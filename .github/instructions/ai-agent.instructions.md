@@ -48,3 +48,6 @@ Make minimal, accurate changes that follow existing patterns and keep documentat
 ## Style Reminders
 - 2-space indentation, semicolons, and Tailwind utility classes.
 - Keep changes focused and avoid unrelated refactors.
+
+## Browser MCP
+- Avoid repeated navigation; prefer taking a screenshot directly to check UI changes.
