@@ -37,16 +37,16 @@ accuracyScore = (correctCount / totalAttempts) * 100
 - Speed ratio: `speedRatio = expectedTime / actualTime`
 
 ```
-speedScore = min(100, speedRatio * 50)
+speedScore = min(100, speedRatio * 40)
 ```
 
 | Speed Ratio | Speed Score | Interpretation |
 |-------------|-------------|----------------|
-| 2.0+ | 100 | Excellent (2x faster than expected) |
-| 1.5 | 75 | Very Good |
-| 1.0 | 50 | Average (matches expected) |
-| 0.5 | 25 | Slow |
-| 0.25 | 12.5 | Very Slow |
+| 2.0+ | 80 | Excellent (2x faster than expected) |
+| 1.5 | 60 | Very Good |
+| 1.0 | 40 | Average (matches expected) |
+| 0.5 | 20 | Slow |
+| 0.25 | 10 | Very Slow |
 
 #### C. Consistency Factor (30% weight)
 - Measures how consistent the user's performance is over time
@@ -62,6 +62,10 @@ consistencyScore = max(0, 100 - variance * 100)
 
 ```
 masteryScore = (accuracyScore * 0.4) + (speedScore * 0.3) + (consistencyScore * 0.3)
+
+Early-attempt caps are applied:
+- If totalAttempts < 3, masteryScore is capped at 39 (Learning)
+- If totalAttempts < 5, masteryScore is capped at 59 (Familiar)
 ```
 
 ### 4. Practice Priority (Selection Weight)
@@ -95,11 +99,12 @@ How many times the word has been practiced:
 | 6-10 | 1.0 |
 | 11+ | 0.8 |
 
-### 5. Hint Penalty
+### 5. Incorrect Attempt Rules
 
-When a user reveals a hint (hovers over the ❌ icon):
-- Counts as an incorrect attempt for accuracy
-- No speed score recorded for that attempt
+When a user makes a mistake:
+- Any full-length incorrect input counts as an incorrect attempt
+- Revealing a hint (hover/focus on ❌) also counts as an incorrect attempt
+- No speed score recorded for incorrect attempts
 
 ## Data Structure
 
@@ -154,10 +159,10 @@ function calculateMasteryScore(metrics: WordMetrics): MasteryResult {
     ? inputTimes.reduce((a, b) => a + b, 0) / inputTimes.length
     : expectedTime * 2;
   const speedRatio = expectedTime / avgInputTime;
-  const speedScore = Math.min(100, speedRatio * 50);
+  const speedScore = Math.min(100, speedRatio * 40);
   
   // Consistency Factor (30%)
-  let consistencyScore = 50; // Default for < 3 attempts
+  let consistencyScore = 30; // Default for < 3 attempts
   if (inputTimes.length >= 3) {
     const lastTimes = inputTimes.slice(-10);
     const mean = lastTimes.reduce((a, b) => a + b, 0) / lastTimes.length;
@@ -169,9 +174,15 @@ function calculateMasteryScore(metrics: WordMetrics): MasteryResult {
   }
   
   // Final score
-  const score = Math.round(
+  let score = Math.round(
     accuracyScore * 0.4 + speedScore * 0.3 + consistencyScore * 0.3
   );
+
+  if (totalAttempts < 3) {
+    score = Math.min(score, 39);
+  } else if (totalAttempts < 5) {
+    score = Math.min(score, 59);
+  }
   
   return {
     score: Math.max(0, Math.min(100, score)),

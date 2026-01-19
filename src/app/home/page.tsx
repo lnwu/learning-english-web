@@ -13,7 +13,7 @@ const Home = observer(() => {
   const [shouldFocusFirst, setShouldFocusFirst] = useState(false);
   const [randomWords, setRandomWords] = useState<[string, string][]>([]);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-  const hintRevealedRef = useRef<Set<string>>(new Set());
+  const incorrectRecordedRef = useRef<Set<string>>(new Set());
   const timerStartRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
@@ -43,7 +43,7 @@ const Home = observer(() => {
 
   const refreshWords = () => {
     words.userInputs.clear();
-    hintRevealedRef.current.clear();
+    incorrectRecordedRef.current.clear();
     timerStartRef.current.clear();
     setRandomWords(words.getRandomWords());
     setShouldFocusFirst(true);
@@ -67,8 +67,8 @@ const Home = observer(() => {
 
   const handleHintReveal = (word: string) => {
     // Only record incorrect attempt once per word per session
-    if (!hintRevealedRef.current.has(word)) {
-      hintRevealedRef.current.add(word);
+    if (!incorrectRecordedRef.current.has(word)) {
+      incorrectRecordedRef.current.add(word);
       recordIncorrectAttempt(word);
     }
   };
@@ -152,6 +152,15 @@ const Home = observer(() => {
                       }
                       
                       words.setUserInput(word, value);
+
+                      if (
+                        value.length >= word.length &&
+                        value !== word &&
+                        !incorrectRecordedRef.current.has(word)
+                      ) {
+                        incorrectRecordedRef.current.add(word);
+                        recordIncorrectAttempt(word);
+                      }
                       
                       // If word is now correct, record the attempt
                       if (value === word) {

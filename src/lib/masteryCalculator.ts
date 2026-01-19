@@ -20,6 +20,11 @@ export interface MasteryResult {
   consistencyScore: number;
 }
 
+const MIN_ATTEMPTS_FOR_FAMILIAR = 3;
+const MIN_ATTEMPTS_FOR_PROFICIENT = 5;
+const DEFAULT_EARLY_CONSISTENCY = 30;
+const SPEED_SCORE_MULTIPLIER = 40;
+
 export type MasteryLevel =
   | "new"
   | "learning"
@@ -95,10 +100,10 @@ export function calculateMasteryScore(metrics: WordMetrics): MasteryResult {
       ? inputTimes.reduce((a, b) => a + b, 0) / inputTimes.length
       : expectedTime * 2; // Default to slow if no data
   const speedRatio = expectedTime / avgInputTime;
-  const speedScore = Math.min(100, speedRatio * 50);
+  const speedScore = Math.min(100, speedRatio * SPEED_SCORE_MULTIPLIER);
 
   // Consistency Factor (30% weight)
-  let consistencyScore = 50; // Default for < 3 attempts
+  let consistencyScore = DEFAULT_EARLY_CONSISTENCY; // Default for < 3 attempts
   if (inputTimes.length >= 3) {
     const lastTimes = inputTimes.slice(-10); // Use last 10 times
     const mean = lastTimes.reduce((a, b) => a + b, 0) / lastTimes.length;
@@ -111,9 +116,15 @@ export function calculateMasteryScore(metrics: WordMetrics): MasteryResult {
   }
 
   // Final score
-  const score = Math.round(
+  let score = Math.round(
     accuracyScore * 0.4 + speedScore * 0.3 + consistencyScore * 0.3
   );
+
+  if (totalAttempts < MIN_ATTEMPTS_FOR_FAMILIAR) {
+    score = Math.min(score, 39);
+  } else if (totalAttempts < MIN_ATTEMPTS_FOR_PROFICIENT) {
+    score = Math.min(score, 59);
+  }
 
   return {
     score: Math.max(0, Math.min(100, score)),
