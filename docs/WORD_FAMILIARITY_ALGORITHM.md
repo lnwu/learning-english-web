@@ -79,14 +79,16 @@ priority = (100 - masteryScore) * recencyMultiplier * practiceCountMultiplier
 #### Recency Multiplier
 How recently the word was practiced:
 
-| Days Since Last Practice | Multiplier |
-|--------------------------|------------|
-| 0 (today) | 0.5 |
-| 1 | 1.0 |
-| 2-3 | 1.5 |
-| 4-7 | 2.0 |
-| 8-14 | 2.5 |
-| 15+ | 3.0 |
+**Priority Rule**: Words not practiced for 7+ days receive extremely high priority to guarantee weekly review for all words.
+
+| Days Since Last Practice | Multiplier | Purpose |
+|--------------------------|------------|---------|
+| 0 (today) | 0.3 | Just practiced, low priority |
+| 1 | 0.8 | Recent practice |
+| 2-3 | 1.2 | Normal spacing |
+| 4-6 | 2.0 | Due for review |
+| 7-13 | 8.0 | **Weekly review enforcement** |
+| 14+ | 15.0 | **Overdue - critical priority** |
 
 #### Practice Count Multiplier
 How many times the word has been practiced:

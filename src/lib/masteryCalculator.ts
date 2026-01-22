@@ -138,6 +138,9 @@ export function calculateMasteryScore(metrics: WordMetrics): MasteryResult {
 /**
  * Calculate practice priority for word selection
  * Higher priority = more likely to be selected for practice
+ * 
+ * PRIORITY RULE: Words not practiced in 7+ days get extremely high priority
+ * to ensure weekly review for all words.
  */
 export function calculatePriority(
   masteryScore: number,
@@ -149,14 +152,14 @@ export function calculatePriority(
     ? (Date.now() - lastPracticedAt.getTime()) / (1000 * 60 * 60 * 24)
     : 30; // Treat as 30 days if never practiced
 
-  // Recency multiplier (spaced repetition)
+  // Recency multiplier with strong boost for 7+ days (weekly review guarantee)
   let recencyMultiplier: number;
-  if (daysSince < 1) recencyMultiplier = 0.5;
-  else if (daysSince < 2) recencyMultiplier = 1.0;
-  else if (daysSince < 4) recencyMultiplier = 1.5;
-  else if (daysSince < 8) recencyMultiplier = 2.0;
-  else if (daysSince < 15) recencyMultiplier = 2.5;
-  else recencyMultiplier = 3.0;
+  if (daysSince < 1) recencyMultiplier = 0.3;
+  else if (daysSince < 2) recencyMultiplier = 0.8;
+  else if (daysSince < 4) recencyMultiplier = 1.2;
+  else if (daysSince < 7) recencyMultiplier = 2.0;
+  else if (daysSince < 14) recencyMultiplier = 8.0;  // Very high priority for weekly review
+  else recencyMultiplier = 15.0;  // Extremely high for overdue words
 
   // Practice count multiplier (prioritize new words)
   let practiceMultiplier: number;
