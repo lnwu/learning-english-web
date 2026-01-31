@@ -1,52 +1,33 @@
 # AGENTS.md - Web Application Module
 
-This file contains mandatory rules and context for AI agents working on the **learning-english-web** Next.js application.
+本文件包含 AI agents 处理 **learning-english-web** 模块时的上下文和补充规则。
 
-## Mandatory Rules
+## 基础规则继承
 
-### 1. Context7 Usage (Mandatory)
-
-涉及以下任何情况时，**必须**先调用 Context7 工具，不得凭记忆假设：
-
-| 场景          | 必须检查 | 示例                               |
-| ------------- | -------- | ---------------------------------- |
-| 版本号约束    | ✅       | `package.json` 中的依赖版本        |
-| 第三方库导入  | ✅       | `import { x } from "library"`      |
-| API 调用      | ✅       | 外部服务接口、SDK                  |
-| 配置文件      | ✅       | `next.config.ts`、`tsconfig.json`  |
-
-### 2. Code Generation Rules
-
-生成**所有代码文件**时禁止添加任何注释，包括：
-
-- ❌ 行内注释：`// 这是注释`
-- ❌ 块注释：`/* ... */`
-- ❌ 文档注释：`/** ... */`、`/// ...`
-- ❌ 行尾注释：`code // 注释`
-
-**适用范围**：`.ts` `.tsx` `.js` `.jsx` 等所有代码文件
-
-**例外情况**：用户明确要求添加注释时 ✅
+通用强制规则继承自根目录 [`../AGENTS.md`](../AGENTS.md)：
+- Context7 Usage（强制）
+- Code Generation Rules（强制）
+- Agent Skill 安装规范
 
 ---
 
-## Module Context
+## 模块特定上下文
 
 ### Technology Stack
 
 | Category         | Technology                                    |
-| ---------------- | --------------------------------------------- |
-| Framework        | Next.js 15 (App Router)                       |
-| Language         | TypeScript 5.9 (strict mode)                  |
-| UI Library       | React 19                                      |
-| Styling          | Tailwind CSS v4                               |
-| State Management | MobX + mobx-react-lite                        |
-| Authentication   | NextAuth.js v5 (Auth.js) with Google OAuth    |
-| UI Components    | Radix UI primitives                           |
-| Icons            | Lucide React                                  |
-| Cloud Storage    | Firebase Firestore                            |
-| Analytics        | Vercel Analytics                              |
-| Build Tool       | Turbopack (dev), Next.js build (prod)         |
+| ---------------- | ----------------------------------------------- |
+| Framework        | Next.js 15 (App Router)                         |
+| Language         | TypeScript 5.9 (strict mode)                    |
+| UI Library       | React 19                                        |
+| Styling          | Tailwind CSS v4                                 |
+| State Management | MobX + mobx-react-lite                          |
+| Authentication   | NextAuth.js v5 (Auth.js) with Google OAuth      |
+| UI Components    | Radix UI primitives                             |
+| Icons            | Lucide React                                    |
+| Cloud Storage    | Firebase Firestore                              |
+| Analytics        | Vercel Analytics                                |
+| Build Tool       | Turbopack (dev), Next.js build (prod)           |
 
 ### Directory Structure
 
@@ -54,19 +35,9 @@ This file contains mandatory rules and context for AI agents working on the **le
 learning-english-web/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
-│   │   ├── layout.tsx          # Root layout with auth provider
-│   │   ├── page.tsx            # Root redirect
-│   │   ├── home/               # Practice page (main feature)
-│   │   ├── add-word/           # Add new words page
-│   │   ├── profile/            # User profile & stats
-│   │   ├── login/              # Authentication page
-│   │   └── api/auth/           # NextAuth API routes
-│   ├── components/
-│   │   ├── auth/               # Auth components
-│   │   └── ui/                 # UI primitives
+│   ├── components/             # React components
 │   ├── hooks/                  # Custom React hooks
-│   ├── lib/                    # Utility functions
-│   └── proxy.ts                # API proxy utilities
+│   └── lib/                    # Utility functions
 ├── docs/                       # Documentation
 ├── public/                     # Static assets
 └── e2e/                        # Playwright tests
@@ -75,23 +46,10 @@ learning-english-web/
 ### Development Commands
 
 ```bash
-# Development (with Turbopack)
-npm run dev
-
-# Production build
-npm run build
-
-# Start production server
-npm run start
-
-# Linting
-npm run lint
-npm run lint:fix
-
-# E2E Testing (Playwright)
-npm run test:e2e
-npm run test:e2e:ui
-npm run test:e2e:headed
+npm run dev              # Development (Turbopack)
+npm run build            # Production build
+npm run lint             # ESLint
+npm run test:e2e         # Playwright tests
 ```
 
 ### Environment Variables
@@ -99,12 +57,9 @@ npm run test:e2e:headed
 Required in `.env.local`:
 
 ```bash
-# NextAuth
 AUTH_SECRET=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
-
-# Firebase (NEXT_PUBLIC_ prefixed for client access)
 NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=
@@ -113,6 +68,15 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
 ```
+
+### Context7 特别提示
+
+涉及以下场景时必须调用 Context7：
+- `package.json` 中的依赖版本
+- Next.js 15、React 19、TypeScript 5.9 相关 API
+- NextAuth.js v5 配置和 API
+- Firebase Firestore SDK
+- Tailwind CSS v4 新特性
 
 ### External APIs
 
@@ -140,15 +104,14 @@ interface WordData {
 ### Development Conventions
 
 1. **TypeScript**: Strict mode; avoid `any` type
-2. **React**: Functional components with hooks; `"use client"` for interactivity
-3. **State Management**: MobX for global state; React hooks for local state
+2. **React**: Functional components; `"use client"` for interactivity
+3. **State**: MobX for global; hooks for local
 4. **Styling**: Tailwind CSS utility classes
-5. **Components**: Small, focused components
-6. **Imports**: Use `@/` path aliases
+5. **Imports**: Use `@/` path aliases
 
 ### Documentation
 
 - `docs/ARCHITECTURE.md` - Technical architecture
 - `docs/FIREBASE_IMPLEMENTATION_GUIDE.md` - Firestore setup
-- `docs/MIGRATION_GUIDE.md` - LocalStorage to Firestore migration
-- `docs/GOOGLE_OAUTH_SETUP.md` - Google OAuth configuration
+- `docs/MIGRATION_GUIDE.md` - Data migration
+- `docs/GOOGLE_OAUTH_SETUP.md` - OAuth configuration
