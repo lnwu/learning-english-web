@@ -1,3 +1,5 @@
+# Move to https://github.com/lnwu/learning-english
+
 # Learning English
 
 A modern web application designed to help users learn English vocabulary through interactive word practice and automatic translations.
